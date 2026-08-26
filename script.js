@@ -173,11 +173,16 @@ function renderStats() {
 
 // ---------- REST TIMER ----------
 
+const WHEEL_ROW_HEIGHT = 36; // px — must match .wheel-row's height in style.css
+const WHEEL_MAX_MINUTES = 59;
+const WHEEL_MAX_SECONDS = 59;
+
 let timerDuration = 90;    // seconds selected, used when (re)starting
 let timerRemaining = 90;   // seconds left to show, kept in sync while paused
 let timerEndTime = null;   // the actual clock time the timer should finish — the key idea
 let timerInterval = null;
 let timerRunning = false;
+let timerActive = false;   // true from Start until Cancel — switches the picker for the countdown
 
 function formatTime(totalSeconds) {
   const safeSeconds = Math.max(0, totalSeconds);
@@ -190,16 +195,135 @@ function updateTimerDisplay(seconds) {
   document.getElementById("timer-display").textContent = formatTime(seconds);
 }
 
-function selectPreset(seconds) {
-  if (timerRunning) return; // don't let a preset change interrupt a running timer
+// ---- Minute/second wheel picker, styled after the iOS Clock app's timer ----
 
-  timerDuration = seconds;
-  timerRemaining = seconds;
-  updateTimerDisplay(seconds);
+const minuteWheel = document.getElementById("minute-wheel");
+const secondWheel = document.getElementById("second-wheel");
 
-  document.querySelectorAll(".preset-btn").forEach((btn) => {
-    btn.classList.toggle("is-selected", Number(btn.dataset.seconds) === seconds);
+function buildWheel(wheel, maxValue) {
+  const topPad = document.createElement("div");
+  topPad.className = "wheel-pad";
+  wheel.appendChild(topPad);
+
+  for (let value = 0; value <= maxValue; value++) {
+    const row = document.createElement("div");
+    row.className = "wheel-row";
+    row.textContent = value;
+    row.dataset.value = value;
+    row.addEventListener("click", () => scrollWheelTo(wheel, value, true));
+    wheel.appendChild(row);
+  }
+
+  const bottomPad = document.createElement("div");
+  bottomPad.className = "wheel-pad";
+  wheel.appendChild(bottomPad);
+}
+
+function scrollWheelTo(wheel, value, smooth) {
+  wheel.scrollTo({ top: value * WHEEL_ROW_HEIGHT, behavior: smooth ? "smooth" : "auto" });
+}
+
+// Fades rows by distance from center as the wheel scrolls, matching the real iOS picker's look.
+function updateWheelFade(wheel) {
+  const center = wheel.scrollTop / WHEEL_ROW_HEIGHT;
+  wheel.querySelectorAll(".wheel-row").forEach((row) => {
+    const distance = Math.abs(Number(row.dataset.value) - center);
+    row.style.opacity = Math.max(0.25, 1 - distance * 0.35).toFixed(2);
   });
+}
+
+function markWheelSelection(wheel, index) {
+  wheel.dataset.selected = index;
+  wheel.querySelectorAll(".wheel-row").forEach((row) => {
+    row.classList.toggle("is-selected", Number(row.dataset.value) === index);
+  });
+}
+
+// Called once scrolling has settled: snaps exactly to the nearest row and records its value.
+function commitWheelSelection(wheel, maxValue) {
+  const index = Math.min(maxValue, Math.max(0, Math.round(wheel.scrollTop / WHEEL_ROW_HEIGHT)));
+  scrollWheelTo(wheel, index, true);
+  markWheelSelection(wheel, index);
+  syncPresetHighlight();
+}
+
+function setupWheelScrolling(wheel, maxValue) {
+  let settleTimer = null;
+
+  wheel.addEventListener("scroll", () => {
+    updateWheelFade(wheel);
+    // Debounced rather than using "scrollend" so this keeps working on older Safari/iOS.
+    clearTimeout(settleTimer);
+    settleTimer = setTimeout(() => commitWheelSelection(wheel, maxValue), 120);
+  });
+}
+
+function getPickerTotalSeconds() {
+  return Number(minuteWheel.dataset.selected || 0) * 60 + Number(secondWheel.dataset.selected || 0);
+}
+
+function setPickerValue(minutes, seconds, smooth) {
+  scrollWheelTo(minuteWheel, minutes, smooth);
+  scrollWheelTo(secondWheel, seconds, smooth);
+  markWheelSelection(minuteWheel, minutes);
+  markWheelSelection(secondWheel, seconds);
+  updateWheelFade(minuteWheel);
+  updateWheelFade(secondWheel);
+  syncPresetHighlight();
+}
+
+function syncPresetHighlight() {
+  const total = getPickerTotalSeconds();
+  document.querySelectorAll(".preset-btn").forEach((btn) => {
+    btn.classList.toggle("is-selected", Number(btn.dataset.seconds) === total);
+  });
+}
+
+function initTimerPicker() {
+  buildWheel(minuteWheel, WHEEL_MAX_MINUTES);
+  buildWheel(secondWheel, WHEEL_MAX_SECONDS);
+  setupWheelScrolling(minuteWheel, WHEEL_MAX_MINUTES);
+  setupWheelScrolling(secondWheel, WHEEL_MAX_SECONDS);
+  markWheelSelection(minuteWheel, Math.floor(timerDuration / 60));
+  markWheelSelection(secondWheel, timerDuration % 60);
+  syncPresetHighlight();
+  // Scrolling to the right row does nothing yet — the Timer tab panel is still `hidden`
+  // (display:none) at this point, so the wheel has no layout box. resyncPickerScroll()
+  // does the actual scrollTo once the panel becomes visible, in activateTab() below.
+}
+
+// Re-applies the wheel's scroll position from its last committed value. Needed because
+// scrollTo() is a no-op while the Timer panel is hidden (see initTimerPicker above), so
+// this has to run again the moment the panel is shown.
+function resyncPickerScroll() {
+  if (timerActive) return; // the countdown view is showing instead of the picker
+  scrollWheelTo(minuteWheel, Number(minuteWheel.dataset.selected || 0), false);
+  scrollWheelTo(secondWheel, Number(secondWheel.dataset.selected || 0), false);
+}
+
+function selectPreset(seconds) {
+  if (timerActive) return; // presets only adjust the picker before the timer is started
+  setPickerValue(Math.floor(seconds / 60), seconds % 60, true);
+}
+
+// ---- Idle (picker) <-> active (countdown) view ----
+
+function showPicker() {
+  document.getElementById("timer-picker").hidden = false;
+  document.getElementById("timer-presets").hidden = false;
+  document.getElementById("timer-display").hidden = true;
+  document.getElementById("timer-start").hidden = false;
+  document.getElementById("timer-pause").hidden = true;
+  document.getElementById("timer-reset").hidden = true;
+}
+
+function showCountdown() {
+  document.getElementById("timer-picker").hidden = true;
+  document.getElementById("timer-presets").hidden = true;
+  document.getElementById("timer-display").hidden = false;
+  document.getElementById("timer-start").hidden = true;
+  document.getElementById("timer-pause").hidden = false;
+  document.getElementById("timer-reset").hidden = false;
 }
 
 function tick() {
@@ -210,6 +334,7 @@ function tick() {
     stopTimer();
     updateTimerDisplay(0);
     notifyTimerDone();
+    goToIdle();
     return;
   }
 
@@ -254,6 +379,14 @@ function resetTimer() {
   updateTimerDisplay(timerDuration);
 }
 
+// Cancel: back to the picker, ready to dial in the next rest period.
+function goToIdle() {
+  resetTimer();
+  timerActive = false;
+  document.getElementById("timer-pause").textContent = "Pause";
+  showPicker();
+}
+
 function notifyTimerDone() {
   if (typeof Notification !== "undefined" && Notification.permission === "granted") {
     new Notification("Rest complete", { body: "Time for your next set." });
@@ -289,9 +422,29 @@ document.querySelectorAll(".preset-btn").forEach((btn) => {
   btn.addEventListener("click", () => selectPreset(Number(btn.dataset.seconds)));
 });
 
-document.getElementById("timer-start").addEventListener("click", startTimer);
-document.getElementById("timer-pause").addEventListener("click", pauseTimer);
-document.getElementById("timer-reset").addEventListener("click", resetTimer);
+document.getElementById("timer-start").addEventListener("click", () => {
+  const total = getPickerTotalSeconds();
+  if (total <= 0) return; // nothing to count down from
+
+  timerDuration = total;
+  timerRemaining = total;
+  timerActive = true;
+  showCountdown();
+  updateTimerDisplay(timerRemaining);
+  startTimer();
+});
+
+document.getElementById("timer-pause").addEventListener("click", () => {
+  if (timerRunning) {
+    pauseTimer();
+    document.getElementById("timer-pause").textContent = "Resume";
+  } else {
+    startTimer();
+    document.getElementById("timer-pause").textContent = "Pause";
+  }
+});
+
+document.getElementById("timer-reset").addEventListener("click", goToIdle);
 
 // ---------- TEMPLATE MANAGEMENT ----------
 
@@ -779,6 +932,10 @@ function activateTab(tabName) {
     panel.hidden = panel.dataset.tabPanel !== tabName;
   });
 
+  if (tabName === "timer") {
+    resyncPickerScroll();
+  }
+
   localStorage.setItem("activeTab", tabName);
 }
 
@@ -802,7 +959,7 @@ function updateTimerTabIndicator() {
 // ---------- INITIAL RENDER ----------
 
 renderCountdown();
-selectPreset(timerDuration);
+initTimerPicker();
 renderTemplateList();
 renderAssignGrid();
 renderWeekTrail();
