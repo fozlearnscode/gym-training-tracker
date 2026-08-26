@@ -59,6 +59,13 @@ main {
   margin: 0;
 }
 
+.greeting {
+  font-family: var(--font-body);
+  font-size: 15px;
+  color: var(--color-stone);
+  margin: 8px 0 0;
+}
+
 /* Week view — calendar-page cards, the signature element */
 
 .week-trail {
@@ -423,6 +430,20 @@ input:focus-visible {
   font-size: 12px;
   color: var(--color-stone);
   margin-top: 2px;
+}
+
+/* At streak milestones, the streak stat becomes a message instead of a number — it spans
+   the full grid width (rather than one narrow column) since a sentence needs the room. */
+.stat-block-message {
+  grid-column: 1 / -1;
+  padding: 8px 4px 14px;
+}
+
+.stat-message {
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 15px;
+  color: var(--color-coral);
 }
 
 /* Rest timer */

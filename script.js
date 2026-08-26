@@ -151,6 +151,30 @@ function calculateLast30DayStats() {
   return { totalSets, totalDistance, sessionsCompleted };
 }
 
+// Below the first milestone, the streak stat is just a plain number like any other stat.
+// At 3, 7, 14, and 30+ days it becomes a full-width encouraging message instead — checked
+// highest-first so e.g. a 40-day streak matches the 30+ tier, not the 3-day one.
+function buildStreakStatHtml(streak) {
+  if (streak >= 30) {
+    return `<div class="stat-block stat-block-message"><span class="stat-message">Steph's on a ${streak}-day streak! 🔥🔥🔥</span></div>`;
+  }
+  if (streak >= 14) {
+    return `<div class="stat-block stat-block-message"><span class="stat-message">Steph's on a ${streak}-day streak! 🔥🔥</span></div>`;
+  }
+  if (streak >= 7) {
+    return `<div class="stat-block stat-block-message"><span class="stat-message">Steph's on a ${streak}-day streak! 🔥</span></div>`;
+  }
+  if (streak >= 3) {
+    return `<div class="stat-block stat-block-message"><span class="stat-message">Steph's on a ${streak}-day streak! 👏</span></div>`;
+  }
+  return `
+    <div class="stat-block">
+      <span class="stat-number">${streak}</span>
+      <span class="stat-label">day streak</span>
+    </div>
+  `;
+}
+
 function renderStats() {
   const container = document.getElementById("stats-grid");
   if (!container) return; // this page doesn't show stats
@@ -159,10 +183,7 @@ function renderStats() {
   const { totalSets, totalDistance, sessionsCompleted } = calculateLast30DayStats();
 
   container.innerHTML = `
-    <div class="stat-block">
-      <span class="stat-number">${streak}</span>
-      <span class="stat-label">day streak</span>
-    </div>
+    ${buildStreakStatHtml(streak)}
     <div class="stat-block">
       <span class="stat-number">${sessionsCompleted}</span>
       <span class="stat-label">sessions (30d)</span>
@@ -1077,7 +1098,26 @@ function renderCountdown() {
   const today = new Date();
   const msPerDay = 1000 * 60 * 60 * 24;
   const daysLeft = Math.ceil((raceDate - today) / msPerDay);
-  countdownEl.textContent = `${daysLeft} days to race day`;
+  countdownEl.textContent = `${daysLeft} days until Steph's 10km at Melbourne Marathon`;
+}
+
+// Greets Steph by name, varying the wording by the time of day — a nice personal touch that's
+// cheap to compute since we already have the current time from `new Date()`.
+function renderGreeting() {
+  const greetingEl = document.getElementById("greeting-text");
+  if (!greetingEl) return; // only the home page has a greeting
+
+  const hour = new Date().getHours();
+  let timeOfDay;
+  if (hour < 12) {
+    timeOfDay = "morning";
+  } else if (hour < 18) {
+    timeOfDay = "afternoon";
+  } else {
+    timeOfDay = "evening";
+  }
+
+  greetingEl.textContent = `Good ${timeOfDay}, Steph`;
 }
 
 // ---------- MANUAL LOG FORM (for anything outside the plan) ----------
@@ -1285,6 +1325,7 @@ function updateTimerNavDot() {
 // ---------- INITIAL RENDER ----------
 
 renderCountdown();
+renderGreeting();
 initTimerPicker();
 renderTemplateList();
 renderAssignGrid();
