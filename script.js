@@ -789,11 +789,11 @@ tabButtons.forEach((btn) => {
 // A small dot on the Timer tab so a rest timer counting down in the background isn't forgotten
 // just because the user switched to another tab.
 function updateTimerTabIndicator() {
-  const timerTabBtn = document.querySelector('.tab-btn[data-tab="timer"]');
-  const existingDot = timerTabBtn.querySelector(".tab-dot");
+  const timerIconWrap = document.querySelector('.tab-btn[data-tab="timer"] .tab-icon-wrap');
+  const existingDot = timerIconWrap.querySelector(".tab-dot");
 
   if (timerRunning && !existingDot) {
-    timerTabBtn.insertAdjacentHTML("beforeend", '<span class="tab-dot"></span>');
+    timerIconWrap.insertAdjacentHTML("beforeend", '<span class="tab-dot"></span>');
   } else if (!timerRunning && existingDot) {
     existingDot.remove();
   }

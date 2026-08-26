@@ -24,7 +24,7 @@ body {
   color: var(--color-ink);
   font-family: var(--font-body);
   line-height: 1.5;
-  padding: 24px 16px 64px;
+  padding: 24px 16px calc(84px + env(safe-area-inset-bottom));
 }
 
 main {
@@ -166,37 +166,40 @@ main {
   border: 2px solid var(--color-bg);
 }
 
-/* Tab navigation — segmented control switching between the panels below */
+/* Tab navigation — fixed iOS-style bottom tab bar switching between the panels above */
 
-.tab-nav {
-  display: flex;
-  gap: 4px;
+.tab-bar-wrap {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 20;
   background: var(--color-card);
-  border: 1px solid var(--color-line);
-  border-radius: 999px;
-  padding: 4px;
-  overflow-x: auto;
-  scrollbar-width: none;
+  border-top: 1px solid var(--color-line);
 }
 
-.tab-nav::-webkit-scrollbar {
-  display: none;
+.tab-bar {
+  display: flex;
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 6px 4px calc(6px + env(safe-area-inset-bottom));
 }
 
 .tab-btn {
-  flex: 1 0 auto;
   position: relative;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
   background: none;
   border: none;
-  border-radius: 999px;
-  padding: 9px 14px;
+  padding: 6px 2px 4px;
   font-family: var(--font-body);
-  font-size: 13px;
+  font-size: 10px;
   font-weight: 500;
   color: var(--color-stone);
   cursor: pointer;
-  white-space: nowrap;
-  transition: background 0.15s ease, color 0.15s ease;
 }
 
 .tab-btn:hover {
@@ -204,27 +207,39 @@ main {
 }
 
 .tab-btn.is-active {
-  background: var(--color-coral);
-  color: var(--color-card);
+  color: var(--color-coral);
 }
 
 .tab-btn:focus-visible {
   outline: 2px solid var(--color-coral);
   outline-offset: 2px;
+  border-radius: 8px;
 }
 
-.tab-btn .tab-dot {
-  display: inline-block;
-  width: 6px;
-  height: 6px;
+.tab-icon-wrap {
+  position: relative;
+  display: inline-flex;
+}
+
+.tab-icon {
+  width: 24px;
+  height: 24px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.tab-dot {
+  position: absolute;
+  top: -1px;
+  right: -3px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
   background: var(--color-coral);
-  margin-left: 6px;
-  vertical-align: middle;
-}
-
-.tab-btn.is-active .tab-dot {
-  background: var(--color-card);
+  border: 1.5px solid var(--color-card);
 }
 
 /* Cards */

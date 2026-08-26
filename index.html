@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Gym & Training Tracker</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -35,14 +35,6 @@
         <!-- filled in by script.js -->
       </div>
     </section>
-
-    <nav class="tab-nav" id="tab-nav" role="tablist" aria-label="Sections">
-      <button type="button" class="tab-btn is-active" role="tab" data-tab="log" aria-controls="log-section" aria-selected="true">Log Set</button>
-      <button type="button" class="tab-btn" role="tab" data-tab="timer" aria-controls="timer-section" aria-selected="false">Timer</button>
-      <button type="button" class="tab-btn" role="tab" data-tab="plan" aria-controls="assign-section" aria-selected="false">Plan</button>
-      <button type="button" class="tab-btn" role="tab" data-tab="templates" aria-controls="templates-section" aria-selected="false">Templates</button>
-      <button type="button" class="tab-btn" role="tab" data-tab="history" aria-controls="history-section" aria-selected="false">History</button>
-    </nav>
 
     <div class="tab-panels">
 
@@ -144,6 +136,41 @@
     </div>
 
   </main>
+
+  <div class="tab-bar-wrap">
+    <nav class="tab-bar" id="tab-nav" role="tablist" aria-label="Sections">
+      <button type="button" class="tab-btn is-active" role="tab" data-tab="log" aria-controls="log-section" aria-selected="true">
+        <span class="tab-icon-wrap">
+          <svg class="tab-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>
+        </span>
+        <span class="tab-label">Log</span>
+      </button>
+      <button type="button" class="tab-btn" role="tab" data-tab="timer" aria-controls="timer-section" aria-selected="false">
+        <span class="tab-icon-wrap">
+          <svg class="tab-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>
+        </span>
+        <span class="tab-label">Timer</span>
+      </button>
+      <button type="button" class="tab-btn" role="tab" data-tab="plan" aria-controls="assign-section" aria-selected="false">
+        <span class="tab-icon-wrap">
+          <svg class="tab-icon" viewBox="0 0 24 24"><rect x="3" y="3" width="8" height="8" rx="1.5"/><rect x="13" y="3" width="8" height="8" rx="1.5"/><rect x="3" y="13" width="8" height="8" rx="1.5"/><rect x="13" y="13" width="8" height="8" rx="1.5"/></svg>
+        </span>
+        <span class="tab-label">Plan</span>
+      </button>
+      <button type="button" class="tab-btn" role="tab" data-tab="templates" aria-controls="templates-section" aria-selected="false">
+        <span class="tab-icon-wrap">
+          <svg class="tab-icon" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="4" rx="1"/><rect x="4" y="10" width="16" height="4" rx="1"/><rect x="4" y="16" width="16" height="4" rx="1"/></svg>
+        </span>
+        <span class="tab-label">Templates</span>
+      </button>
+      <button type="button" class="tab-btn" role="tab" data-tab="history" aria-controls="history-section" aria-selected="false">
+        <span class="tab-icon-wrap">
+          <svg class="tab-icon" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 9h18M8 3v4M16 3v4"/></svg>
+        </span>
+        <span class="tab-label">History</span>
+      </button>
+    </nav>
+  </div>
 
   <script src="script.js"></script>
 </body>
