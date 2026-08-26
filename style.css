@@ -144,10 +144,15 @@ main {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
+  /* The icon docks to a fixed position (flex-start) rather than being centered as one block
+     with the label — centering the whole group meant a one-line label (e.g. "Yoga") sat
+     lower than a two-line one (e.g. "Rest day"), so icons drifted out of alignment with
+     each other across the row. Anchoring the icon and centering just the label underneath
+     keeps every icon at the same height regardless of how long its label is. */
+  justify-content: flex-start;
   gap: 4px;
   text-align: center;
-  padding: 6px 5px;
+  padding: 10px 5px 6px;
 }
 
 .day-card-icon {
@@ -186,6 +191,11 @@ main {
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
+  /* Centers the label in whatever space is left below the now fixed-position icon —
+     auto margins on a flex child do this regardless of the item's own display type,
+     so it doesn't fight with the -webkit-box clamping above. */
+  margin-top: auto;
+  margin-bottom: auto;
 }
 
 .day-card.is-rest .day-card-session {
