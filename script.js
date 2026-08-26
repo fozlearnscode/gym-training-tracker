@@ -504,7 +504,8 @@ if (document.getElementById("timer-start")) {
 // ---------- TYPE TOGGLE (icon buttons shared by the log form and template rows) ----------
 
 const STRENGTH_ICON_SVG = '<rect x="1.5" y="8" width="3" height="8" rx="1.3" fill="currentColor"/><rect x="19.5" y="8" width="3" height="8" rx="1.3" fill="currentColor"/><rect x="5.5" y="9.5" width="2.5" height="5" rx="1" fill="currentColor"/><rect x="16" y="9.5" width="2.5" height="5" rx="1" fill="currentColor"/><rect x="7.5" y="10.8" width="9" height="2.4" rx="1.2" fill="currentColor"/>';
-const CARDIO_ICON_SVG = '<path class="rt-limb" d="M15 6.2L11.3 12.6"/><path class="rt-limb" d="M11.3 12.6L15.2 10.8L17.3 15.8"/><path class="rt-limb" d="M11.3 12.6L7.2 13.6L4.7 18.3"/><path class="rt-limb" d="M13.4 7.6L17.6 6.3L20.2 8.8"/><path class="rt-limb" d="M13.4 7.6L9.3 9.1L6.8 7"/><circle class="rt-head" cx="16.3" cy="4" r="2"/><path class="rt-head" d="M15.3 2.8C13.5 0.5 10.8 -1 9.2 0.3C10.8 1.8 12.8 2.6 14.2 3.6Z"/>';
+// "run", Material Design Icons (Pictogrammers), Apache-2.0: https://pictogrammers.com/library/mdi/icon/run/
+const CARDIO_ICON_SVG = '<path fill="currentColor" d="M13.5,5.5C14.59,5.5 15.5,4.58 15.5,3.5C15.5,2.38 14.59,1.5 13.5,1.5C12.39,1.5 11.5,2.38 11.5,3.5C11.5,4.58 12.39,5.5 13.5,5.5M9.89,19.38L10.89,15L13,17V23H15V15.5L12.89,13.5L13.5,10.5C14.79,12 16.79,13 19,13V11C17.09,11 15.5,10 14.69,8.58L13.69,7C13.29,6.38 12.69,6 12,6C11.69,6 11.5,6.08 11.19,6.08L6,8.28V13H8V9.58L9.79,8.88L8.19,17L3.29,16L2.89,18L9.89,19.38Z"/>';
 
 function setTypeToggleValue(toggleEl, type) {
   toggleEl.dataset.value = type;
