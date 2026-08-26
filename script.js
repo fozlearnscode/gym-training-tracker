@@ -1213,6 +1213,14 @@ function renderSavedVideos() {
 }
 
 if (document.getElementById("add-video-form")) {
+  // If the page was opened as videos.html?url=..., pre-fill the input with that link. This is
+  // meant for a phone's share sheet (or a bookmarklet) handing off a TikTok link directly,
+  // rather than the user having to copy/paste it in by hand.
+  const sharedUrl = new URLSearchParams(window.location.search).get("url");
+  if (sharedUrl) {
+    document.getElementById("video-url").value = sharedUrl;
+  }
+
   document.getElementById("add-video-form").addEventListener("submit", async (event) => {
     event.preventDefault();
 
