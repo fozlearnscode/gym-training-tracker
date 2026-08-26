@@ -152,6 +152,8 @@ function calculateLast30DayStats() {
 
 function renderStats() {
   const container = document.getElementById("stats-grid");
+  if (!container) return; // this page doesn't show stats
+
   const streak = calculateStreak();
   const { totalSets, sessionsCompleted } = calculateLast30DayStats();
 
@@ -193,6 +195,27 @@ function formatTime(totalSeconds) {
 
 function updateTimerDisplay(seconds) {
   document.getElementById("timer-display").textContent = formatTime(seconds);
+}
+
+// The timer now lives on its own page, so a countdown started there has to survive
+// navigating to another page (the whole document, and its setInterval, gets torn down).
+// Persisting the end time lets any page reconstruct "how much time is actually left."
+function loadTimerState() {
+  try {
+    return JSON.parse(localStorage.getItem("timerState"));
+  } catch (error) {
+    return null;
+  }
+}
+
+function saveTimerState() {
+  localStorage.setItem("timerState", JSON.stringify({
+    duration: timerDuration,
+    remaining: timerRemaining,
+    endTime: timerEndTime,
+    active: timerActive,
+    running: timerRunning
+  }));
 }
 
 // ---- Minute/second wheel picker, styled after the iOS Clock app's timer ----
@@ -280,25 +303,47 @@ function syncPresetHighlight() {
 }
 
 function initTimerPicker() {
+  if (!minuteWheel) return; // this page doesn't have the timer
+
   buildWheel(minuteWheel, WHEEL_MAX_MINUTES);
   buildWheel(secondWheel, WHEEL_MAX_SECONDS);
   setupWheelScrolling(minuteWheel, WHEEL_MAX_MINUTES);
   setupWheelScrolling(secondWheel, WHEEL_MAX_SECONDS);
-  markWheelSelection(minuteWheel, Math.floor(timerDuration / 60));
-  markWheelSelection(secondWheel, timerDuration % 60);
-  syncPresetHighlight();
-  // Scrolling to the right row does nothing yet — the Timer tab panel is still `hidden`
-  // (display:none) at this point, so the wheel has no layout box. resyncPickerScroll()
-  // does the actual scrollTo once the panel becomes visible, in activateTab() below.
-}
 
-// Re-applies the wheel's scroll position from its last committed value. Needed because
-// scrollTo() is a no-op while the Timer panel is hidden (see initTimerPicker above), so
-// this has to run again the moment the panel is shown.
-function resyncPickerScroll() {
-  if (timerActive) return; // the countdown view is showing instead of the picker
-  scrollWheelTo(minuteWheel, Number(minuteWheel.dataset.selected || 0), false);
-  scrollWheelTo(secondWheel, Number(secondWheel.dataset.selected || 0), false);
+  const saved = loadTimerState();
+
+  if (saved && saved.active && saved.running && saved.endTime - Date.now() > 0) {
+    // A rest timer was left counting down on another page — pick it back up.
+    timerDuration = saved.duration;
+    timerEndTime = saved.endTime;
+    timerRemaining = Math.round((timerEndTime - Date.now()) / 1000);
+    timerActive = true;
+    showCountdown();
+    updateTimerDisplay(timerRemaining);
+    timerRunning = true;
+    document.getElementById("timer-display").classList.add("is-running");
+    timerInterval = setInterval(tick, 250);
+  } else if (saved && saved.active && saved.running) {
+    // It was running but finished while this page wasn't open to catch the tick.
+    timerDuration = saved.duration;
+    notifyTimerDone();
+    resetTimer();
+    timerActive = false;
+    saveTimerState();
+    showPicker();
+  } else if (saved && saved.active) {
+    // Left paused.
+    timerDuration = saved.duration;
+    timerRemaining = saved.remaining;
+    timerActive = true;
+    showCountdown();
+    updateTimerDisplay(timerRemaining);
+    document.getElementById("timer-pause").textContent = "Resume";
+  } else {
+    showPicker();
+  }
+
+  setPickerValue(Math.floor(timerDuration / 60), timerDuration % 60, false);
 }
 
 function selectPreset(seconds) {
@@ -355,7 +400,8 @@ function startTimer() {
   timerRunning = true;
   document.getElementById("timer-display").classList.add("is-running");
   timerInterval = setInterval(tick, 250);
-  updateTimerTabIndicator();
+  saveTimerState();
+  updateTimerNavDot();
 }
 
 function pauseTimer() {
@@ -370,7 +416,8 @@ function stopTimer() {
   clearInterval(timerInterval);
   timerRunning = false;
   document.getElementById("timer-display").classList.remove("is-running");
-  updateTimerTabIndicator();
+  saveTimerState();
+  updateTimerNavDot();
 }
 
 function resetTimer() {
@@ -385,6 +432,7 @@ function goToIdle() {
   timerActive = false;
   document.getElementById("timer-pause").textContent = "Pause";
   showPicker();
+  saveTimerState();
 }
 
 function notifyTimerDone() {
@@ -422,29 +470,31 @@ document.querySelectorAll(".preset-btn").forEach((btn) => {
   btn.addEventListener("click", () => selectPreset(Number(btn.dataset.seconds)));
 });
 
-document.getElementById("timer-start").addEventListener("click", () => {
-  const total = getPickerTotalSeconds();
-  if (total <= 0) return; // nothing to count down from
+if (document.getElementById("timer-start")) {
+  document.getElementById("timer-start").addEventListener("click", () => {
+    const total = getPickerTotalSeconds();
+    if (total <= 0) return; // nothing to count down from
 
-  timerDuration = total;
-  timerRemaining = total;
-  timerActive = true;
-  showCountdown();
-  updateTimerDisplay(timerRemaining);
-  startTimer();
-});
-
-document.getElementById("timer-pause").addEventListener("click", () => {
-  if (timerRunning) {
-    pauseTimer();
-    document.getElementById("timer-pause").textContent = "Resume";
-  } else {
+    timerDuration = total;
+    timerRemaining = total;
+    timerActive = true;
+    showCountdown();
+    updateTimerDisplay(timerRemaining);
     startTimer();
-    document.getElementById("timer-pause").textContent = "Pause";
-  }
-});
+  });
 
-document.getElementById("timer-reset").addEventListener("click", goToIdle);
+  document.getElementById("timer-pause").addEventListener("click", () => {
+    if (timerRunning) {
+      pauseTimer();
+      document.getElementById("timer-pause").textContent = "Resume";
+    } else {
+      startTimer();
+      document.getElementById("timer-pause").textContent = "Pause";
+    }
+  });
+
+  document.getElementById("timer-reset").addEventListener("click", goToIdle);
+}
 
 // ---------- TEMPLATE MANAGEMENT ----------
 
@@ -452,6 +502,8 @@ let editingTemplateId = null; // null means we're creating a new template, not e
 
 function renderTemplateList() {
   const container = document.getElementById("template-list");
+  if (!container) return; // this page doesn't show templates
+
   container.innerHTML = "";
 
   if (templates.length === 0) {
@@ -539,42 +591,46 @@ function deleteTemplate(templateId) {
   renderStats();
 }
 
-document.getElementById("new-template-btn").addEventListener("click", () => openTemplateForm(null));
-document.getElementById("cancel-template").addEventListener("click", closeTemplateForm);
-document.getElementById("add-exercise-row").addEventListener("click", () => addExerciseRow(null));
+if (document.getElementById("new-template-btn")) {
+  document.getElementById("new-template-btn").addEventListener("click", () => openTemplateForm(null));
+  document.getElementById("cancel-template").addEventListener("click", closeTemplateForm);
+  document.getElementById("add-exercise-row").addEventListener("click", () => addExerciseRow(null));
 
-document.getElementById("template-form").addEventListener("submit", (event) => {
-  event.preventDefault();
+  document.getElementById("template-form").addEventListener("submit", (event) => {
+    event.preventDefault();
 
-  const name = document.getElementById("template-name").value;
+    const name = document.getElementById("template-name").value;
 
-  const exercises = Array.from(document.querySelectorAll(".exercise-row")).map((row) => ({
-    name: row.querySelector(".row-name").value,
-    sets: Number(row.querySelector(".row-sets").value),
-    reps: Number(row.querySelector(".row-reps").value)
-  }));
+    const exercises = Array.from(document.querySelectorAll(".exercise-row")).map((row) => ({
+      name: row.querySelector(".row-name").value,
+      sets: Number(row.querySelector(".row-sets").value),
+      reps: Number(row.querySelector(".row-reps").value)
+    }));
 
-  if (editingTemplateId) {
-    const template = templates.find((t) => t.id === editingTemplateId);
-    template.name = name;
-    template.exercises = exercises;
-  } else {
-    templates.push({ id: generateId(), name, exercises });
-  }
+    if (editingTemplateId) {
+      const template = templates.find((t) => t.id === editingTemplateId);
+      template.name = name;
+      template.exercises = exercises;
+    } else {
+      templates.push({ id: generateId(), name, exercises });
+    }
 
-  saveTemplates();
-  closeTemplateForm();
-  renderTemplateList();
-  renderAssignGrid(); // template names may have changed, so refresh the dropdowns too
-  renderTodayPlan();
-  renderWeekTrail();
-  renderStats();
-});
+    saveTemplates();
+    closeTemplateForm();
+    renderTemplateList();
+    renderAssignGrid(); // template names may have changed, so refresh the dropdowns too
+    renderTodayPlan();
+    renderWeekTrail();
+    renderStats();
+  });
+}
 
 // ---------- WEEKLY ASSIGNMENT GRID ----------
 
 function renderAssignGrid() {
   const container = document.getElementById("assign-grid");
+  if (!container) return; // this page doesn't show the weekly plan
+
   container.innerHTML = "";
 
   orderedDays.forEach((day) => {
@@ -622,6 +678,8 @@ function renderAssignGrid() {
 
 function renderWeekTrail() {
   const trail = document.getElementById("week-trail");
+  if (!trail) return; // this page doesn't show the week trail
+
   trail.innerHTML = ""; // clear out anything from a previous render
 
   const weekDates = getWeekDates();
@@ -678,6 +736,8 @@ function renderWeekTrail() {
 
 function renderTodayPlan() {
   const container = document.getElementById("today-plan");
+  if (!container) return; // this page doesn't show today's plan
+
   container.innerHTML = "";
 
   const todayString = toDateString(new Date());
@@ -783,6 +843,8 @@ function mondayIndex(date) {
 
 function renderCalendar() {
   const grid = document.getElementById("calendar-grid");
+  if (!grid) return; // this page doesn't show the history calendar
+
   grid.innerHTML = "";
 
   const year = viewedDate.getFullYear();
@@ -845,6 +907,8 @@ function renderCalendar() {
 
 function renderDayDetail() {
   const container = document.getElementById("day-detail");
+  if (!container) return; // this page doesn't show day detail
+
   const entries = trainingLog.filter((entry) => entry.date === selectedDate);
   const label = new Date(selectedDate).toLocaleDateString("en-AU", {
     weekday: "long",
@@ -867,91 +931,75 @@ function renderDayDetail() {
   container.innerHTML = `<h3>${label}</h3><ul class="exercise-list">${itemsHtml}</ul>`;
 }
 
-document.getElementById("prev-month").addEventListener("click", () => {
-  viewedDate.setMonth(viewedDate.getMonth() - 1);
-  renderCalendar();
-});
+if (document.getElementById("prev-month")) {
+  document.getElementById("prev-month").addEventListener("click", () => {
+    viewedDate.setMonth(viewedDate.getMonth() - 1);
+    renderCalendar();
+  });
 
-document.getElementById("next-month").addEventListener("click", () => {
-  viewedDate.setMonth(viewedDate.getMonth() + 1);
-  renderCalendar();
-});
+  document.getElementById("next-month").addEventListener("click", () => {
+    viewedDate.setMonth(viewedDate.getMonth() + 1);
+    renderCalendar();
+  });
+}
 
 function renderCountdown() {
+  const countdownEl = document.getElementById("countdown-text");
+  if (!countdownEl) return;
+
   const raceDate = new Date("2026-10-11"); // Melbourne Marathon day — adjust if needed
   const today = new Date();
   const msPerDay = 1000 * 60 * 60 * 24;
   const daysLeft = Math.ceil((raceDate - today) / msPerDay);
-  document.getElementById("countdown-text").textContent = `${daysLeft} days to race day`;
+  countdownEl.textContent = `${daysLeft} days to race day`;
 }
 
 // ---------- MANUAL LOG FORM (for anything outside the plan) ----------
 
-document.getElementById("log-form").addEventListener("submit", (event) => {
-  event.preventDefault(); // stops the page from reloading, which forms do by default
+if (document.getElementById("log-form")) {
+  document.getElementById("log-form").addEventListener("submit", (event) => {
+    event.preventDefault(); // stops the page from reloading, which forms do by default
 
-  const exerciseName = document.getElementById("exercise-name").value;
-  const sets = Number(document.getElementById("sets").value);
-  const reps = Number(document.getElementById("reps").value);
-  const weight = document.getElementById("weight").value
-    ? Number(document.getElementById("weight").value)
-    : null;
+    const exerciseName = document.getElementById("exercise-name").value;
+    const sets = Number(document.getElementById("sets").value);
+    const reps = Number(document.getElementById("reps").value);
+    const weight = document.getElementById("weight").value
+      ? Number(document.getElementById("weight").value)
+      : null;
 
-  trainingLog.push({
-    date: toDateString(new Date()),
-    exercise: exerciseName,
-    sets,
-    reps,
-    weight
+    trainingLog.push({
+      date: toDateString(new Date()),
+      exercise: exerciseName,
+      sets,
+      reps,
+      weight
+    });
+
+    saveLog();
+    renderCalendar();
+    renderDayDetail();
+    renderWeekTrail();
+    renderStats();
+    event.target.reset();
   });
-
-  saveLog();
-  renderCalendar();
-  renderDayDetail();
-  renderWeekTrail();
-  renderStats();
-  event.target.reset();
-});
-
-// ---------- TABS ----------
-
-const tabButtons = document.querySelectorAll(".tab-btn");
-const tabPanels = document.querySelectorAll(".tab-panel");
-
-function activateTab(tabName) {
-  const matchingButton = Array.from(tabButtons).find((btn) => btn.dataset.tab === tabName);
-  if (!matchingButton) return; // ignore unknown/stale tab names, e.g. from an old localStorage value
-
-  tabButtons.forEach((btn) => {
-    const isActive = btn.dataset.tab === tabName;
-    btn.classList.toggle("is-active", isActive);
-    btn.setAttribute("aria-selected", isActive);
-  });
-
-  tabPanels.forEach((panel) => {
-    panel.hidden = panel.dataset.tabPanel !== tabName;
-  });
-
-  if (tabName === "timer") {
-    resyncPickerScroll();
-  }
-
-  localStorage.setItem("activeTab", tabName);
 }
 
-tabButtons.forEach((btn) => {
-  btn.addEventListener("click", () => activateTab(btn.dataset.tab));
-});
+// ---------- BOTTOM NAV ----------
 
-// A small dot on the Timer tab so a rest timer counting down in the background isn't forgotten
-// just because the user switched to another tab.
-function updateTimerTabIndicator() {
-  const timerIconWrap = document.querySelector('.tab-btn[data-tab="timer"] .tab-icon-wrap');
+// A small dot on the Timer link so a rest timer counting down on another page isn't
+// forgotten. Reads from localStorage (not the in-memory timerRunning flag) since it has
+// to work correctly on every page, most of which never touch the timer's own state.
+function updateTimerNavDot() {
+  const timerIconWrap = document.querySelector('a[href="timer.html"] .tab-icon-wrap');
+  if (!timerIconWrap) return;
+
+  const saved = loadTimerState();
+  const isRunning = Boolean(saved && saved.active && saved.running && saved.endTime - Date.now() > 0);
   const existingDot = timerIconWrap.querySelector(".tab-dot");
 
-  if (timerRunning && !existingDot) {
+  if (isRunning && !existingDot) {
     timerIconWrap.insertAdjacentHTML("beforeend", '<span class="tab-dot"></span>');
-  } else if (!timerRunning && existingDot) {
+  } else if (!isRunning && existingDot) {
     existingDot.remove();
   }
 }
@@ -966,5 +1014,5 @@ renderWeekTrail();
 renderStats();
 renderTodayPlan();
 renderCalendar();
-activateTab(localStorage.getItem("activeTab") || "log");
 renderDayDetail();
+updateTimerNavDot();

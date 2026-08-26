@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <title>Gym & Training Tracker</title>
+  <title>Log a Set — Gym & Training Tracker</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,400;0,600;1,500&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
@@ -18,35 +18,44 @@
 
   <main>
 
-    <nav class="week-trail" aria-label="This week's progress" id="week-trail">
-      <!-- 7 trail-day dots filled in by script.js -->
-    </nav>
+    <section id="log-section" class="card">
+      <h2>Log a set</h2>
+      <form id="log-form">
+        <div class="field">
+          <label for="exercise-name">Exercise</label>
+          <input type="text" id="exercise-name" required>
+        </div>
 
-    <section id="stats-section" class="card">
-      <h2>Stats</h2>
-      <div class="stats-grid" id="stats-grid">
-        <!-- filled in by script.js -->
-      </div>
-    </section>
+        <div class="field-row">
+          <div class="field">
+            <label for="sets">Sets</label>
+            <input type="number" id="sets" min="1" required>
+          </div>
+          <div class="field">
+            <label for="reps">Reps</label>
+            <input type="number" id="reps" min="1" required>
+          </div>
+          <div class="field">
+            <label for="weight">Weight (kg)</label>
+            <input type="number" id="weight" min="0" step="0.5">
+          </div>
+        </div>
 
-    <section id="today-section" class="card">
-      <h2>Today's plan</h2>
-      <div id="today-plan">
-        <!-- filled in by script.js -->
-      </div>
+        <button type="submit" class="btn-primary">Save entry</button>
+      </form>
     </section>
 
   </main>
 
   <div class="tab-bar-wrap">
     <nav class="tab-bar" aria-label="Sections">
-      <a href="index.html" class="tab-btn is-active" aria-current="page">
+      <a href="index.html" class="tab-btn">
         <span class="tab-icon-wrap">
           <svg class="tab-icon" viewBox="0 0 24 24"><path d="M4 11l8-7 8 7"/><path d="M6 10v9a1 1 0 0 0 1 1h3v-6h4v6h3a1 1 0 0 0 1-1v-9"/></svg>
         </span>
         <span class="tab-label">Home</span>
       </a>
-      <a href="log.html" class="tab-btn">
+      <a href="log.html" class="tab-btn is-active" aria-current="page">
         <span class="tab-icon-wrap">
           <svg class="tab-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>
         </span>

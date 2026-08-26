@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <title>Gym & Training Tracker</title>
+  <title>Rest Timer — Gym & Training Tracker</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,400;0,600;1,500&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
@@ -18,21 +18,29 @@
 
   <main>
 
-    <nav class="week-trail" aria-label="This week's progress" id="week-trail">
-      <!-- 7 trail-day dots filled in by script.js -->
-    </nav>
+    <section id="timer-section" class="card">
+      <h2>Rest timer</h2>
 
-    <section id="stats-section" class="card">
-      <h2>Stats</h2>
-      <div class="stats-grid" id="stats-grid">
-        <!-- filled in by script.js -->
+      <div class="timer-picker" id="timer-picker">
+        <div class="timer-picker-highlight" aria-hidden="true"></div>
+        <div class="timer-wheel" id="minute-wheel" aria-label="Minutes"></div>
+        <span class="wheel-unit-label">min</span>
+        <div class="timer-wheel" id="second-wheel" aria-label="Seconds"></div>
+        <span class="wheel-unit-label">sec</span>
       </div>
-    </section>
 
-    <section id="today-section" class="card">
-      <h2>Today's plan</h2>
-      <div id="today-plan">
-        <!-- filled in by script.js -->
+      <div class="timer-display" id="timer-display" hidden>01:30</div>
+
+      <div class="timer-presets" id="timer-presets">
+        <button type="button" class="preset-btn" data-seconds="60">60s</button>
+        <button type="button" class="preset-btn" data-seconds="90">90s</button>
+        <button type="button" class="preset-btn" data-seconds="120">120s</button>
+      </div>
+
+      <div class="timer-controls">
+        <button type="button" id="timer-start" class="btn-primary">Start</button>
+        <button type="button" id="timer-pause" class="btn-secondary" hidden>Pause</button>
+        <button type="button" id="timer-reset" class="btn-text" hidden>Cancel</button>
       </div>
     </section>
 
@@ -40,7 +48,7 @@
 
   <div class="tab-bar-wrap">
     <nav class="tab-bar" aria-label="Sections">
-      <a href="index.html" class="tab-btn is-active" aria-current="page">
+      <a href="index.html" class="tab-btn">
         <span class="tab-icon-wrap">
           <svg class="tab-icon" viewBox="0 0 24 24"><path d="M4 11l8-7 8 7"/><path d="M6 10v9a1 1 0 0 0 1 1h3v-6h4v6h3a1 1 0 0 0 1-1v-9"/></svg>
         </span>
@@ -52,7 +60,7 @@
         </span>
         <span class="tab-label">Log</span>
       </a>
-      <a href="timer.html" class="tab-btn">
+      <a href="timer.html" class="tab-btn is-active" aria-current="page">
         <span class="tab-icon-wrap">
           <svg class="tab-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>
         </span>

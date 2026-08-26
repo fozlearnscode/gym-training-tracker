@@ -200,6 +200,8 @@ main {
   font-weight: 500;
   color: var(--color-stone);
   cursor: pointer;
+  text-decoration: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .tab-btn:hover {
