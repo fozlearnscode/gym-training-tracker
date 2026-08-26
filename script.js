@@ -503,7 +503,8 @@ if (document.getElementById("timer-start")) {
 
 // ---------- TYPE TOGGLE (icon buttons shared by the log form and template rows) ----------
 
-const STRENGTH_ICON_SVG = '<rect x="1.5" y="8" width="3" height="8" rx="1.3" fill="currentColor"/><rect x="19.5" y="8" width="3" height="8" rx="1.3" fill="currentColor"/><rect x="5.5" y="9.5" width="2.5" height="5" rx="1" fill="currentColor"/><rect x="16" y="9.5" width="2.5" height="5" rx="1" fill="currentColor"/><rect x="7.5" y="10.8" width="9" height="2.4" rx="1.2" fill="currentColor"/>';
+// "dumbbell", Material Design Icons (Pictogrammers), Apache-2.0: https://pictogrammers.com/library/mdi/icon/dumbbell/
+const STRENGTH_ICON_SVG = '<path fill="currentColor" d="M20.57,14.86L22,13.43L20.57,12L17,15.57L8.43,7L12,3.43L10.57,2L9.14,3.43L7.71,2L5.57,4.14L4.14,2.71L2.71,4.14L4.14,5.57L2,7.71L3.43,9.14L2,10.57L3.43,12L7,8.43L15.57,17L12,20.57L13.43,22L14.86,20.57L16.29,22L18.43,19.86L19.86,21.29L21.29,19.86L19.86,18.43L22,16.29L20.57,14.86Z"/>';
 // "run", Material Design Icons (Pictogrammers), Apache-2.0: https://pictogrammers.com/library/mdi/icon/run/
 const CARDIO_ICON_SVG = '<path fill="currentColor" d="M13.5,5.5C14.59,5.5 15.5,4.58 15.5,3.5C15.5,2.38 14.59,1.5 13.5,1.5C12.39,1.5 11.5,2.38 11.5,3.5C11.5,4.58 12.39,5.5 13.5,5.5M9.89,19.38L10.89,15L13,17V23H15V15.5L12.89,13.5L13.5,10.5C14.79,12 16.79,13 19,13V11C17.09,11 15.5,10 14.69,8.58L13.69,7C13.29,6.38 12.69,6 12,6C11.69,6 11.5,6.08 11.19,6.08L6,8.28V13H8V9.58L9.79,8.88L8.19,17L3.29,16L2.89,18L9.89,19.38Z"/>';
 
