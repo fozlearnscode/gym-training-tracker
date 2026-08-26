@@ -261,6 +261,7 @@ main {
 
 .field-row .field {
   flex: 1;
+  width: 0; /* let flex control width instead of the input's default size */
 }
 
 label {
