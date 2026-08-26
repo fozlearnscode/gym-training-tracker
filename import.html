@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <title>Steph's Training Tracker</title>
+  <title>Import Screenshot — Steph's Training Tracker</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,400;0,600;1,500&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
@@ -14,26 +14,43 @@
   <header class="site-header">
     <p class="eyebrow" id="countdown-text">Loading countdown...</p>
     <h1 class="wordmark">Steph's Training Tracker</h1>
-    <p class="greeting" id="greeting-text"></p>
   </header>
 
   <main>
 
-    <nav class="week-trail" aria-label="This week's progress" id="week-trail">
-      <!-- 7 trail-day dots filled in by script.js -->
-    </nav>
+    <section id="import-section" class="card">
+      <h2>Import from screenshot</h2>
+      <p class="form-hint">Upload a screenshot of a workout screen (e.g. Heather Robertson Fitness) and the exercises will be read off it automatically.</p>
+      <form id="import-form">
+        <div class="field">
+          <label for="screenshot-input">Screenshot</label>
+          <input type="file" id="screenshot-input" class="screenshot-input" accept="image/png,image/jpeg,image/webp" required>
+        </div>
 
-    <section id="stats-section" class="card">
-      <h2>Stats</h2>
-      <div class="stats-grid" id="stats-grid">
-        <!-- filled in by script.js -->
-      </div>
+        <img id="screenshot-preview" class="screenshot-preview" hidden alt="Selected screenshot preview">
+
+        <div class="field">
+          <label for="import-date">Date</label>
+          <input type="date" id="import-date" required>
+        </div>
+
+        <p class="form-error" id="import-error" hidden></p>
+
+        <button type="submit" class="btn-primary" id="import-btn">Extract exercises</button>
+      </form>
     </section>
 
-    <section id="today-section" class="card">
-      <h2>Today's plan</h2>
-      <div id="today-plan">
-        <!-- filled in by script.js -->
+    <section id="import-result-section" class="card" hidden>
+      <h2>Review extracted exercises</h2>
+      <p class="form-hint">Check these over — screenshot reading isn't perfect — then save them to your log.</p>
+      <div id="import-exercise-rows">
+        <!-- exercise rows added by script.js -->
+      </div>
+      <button type="button" id="add-import-row" class="btn-secondary">+ Add exercise</button>
+
+      <div class="form-actions">
+        <button type="button" class="btn-primary" id="save-import-btn">Save to log</button>
+        <button type="button" class="btn-text" id="discard-import-btn">Discard</button>
       </div>
     </section>
 
@@ -41,7 +58,7 @@
 
   <div class="tab-bar-wrap">
     <nav class="tab-bar" aria-label="Sections">
-      <a href="index.html" class="tab-btn is-active" aria-current="page">
+      <a href="index.html" class="tab-btn">
         <span class="tab-icon-wrap">
           <svg class="tab-icon" viewBox="0 0 24 24"><path d="M4 11l8-7 8 7"/><path d="M6 10v9a1 1 0 0 0 1 1h3v-6h4v6h3a1 1 0 0 0 1-1v-9"/></svg>
         </span>
@@ -89,7 +106,7 @@
         </span>
         <span class="tab-label">Suggest</span>
       </a>
-      <a href="import.html" class="tab-btn">
+      <a href="import.html" class="tab-btn is-active" aria-current="page">
         <span class="tab-icon-wrap">
           <!-- "camera-plus", Material Design Icons (Pictogrammers), Apache-2.0: https://pictogrammers.com/library/mdi/icon/camera-plus/ -->
           <svg class="tab-icon tab-icon-filled" viewBox="0 0 24 24"><path d="M3 4V1H5V4H8V6H5V9H3V6H0V4M6 10V7H9V4H16L17.8 6H21C22.1 6 23 6.9 23 8V20C23 21.1 22.1 22 21 22H5C3.9 22 3 21.1 3 20V10M13 19C17.45 19 19.69 13.62 16.54 10.46C13.39 7.31 8 9.55 8 14C8 16.76 10.24 19 13 19M9.8 14C9.8 16.85 13.25 18.28 15.26 16.26C17.28 14.25 15.85 10.8 13 10.8C11.24 10.8 9.8 12.24 9.8 14Z"/></svg>

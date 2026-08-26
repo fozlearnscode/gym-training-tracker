@@ -1403,6 +1403,170 @@ if (document.getElementById("add-video-form")) {
   });
 }
 
+// ---------- SCREENSHOT IMPORT (Phase 3.5) ----------
+
+// Same reasoning as SUGGEST_API_URL above — this calls a Vercel function that holds the
+// Anthropic API key, since the browser can never be trusted with it. See
+// api/import-screenshot.js for the vision call itself.
+const IMPORT_API_URL = "https://gym-training-tracker-gamma.vercel.app/api/import-screenshot";
+
+let lastImportPreviewUrl = null; // tracks the object URL so it can be revoked, avoiding a leak
+
+// Vercel's Node functions reject request bodies over ~4.5MB, and a raw phone screenshot can
+// easily exceed that. Shrinking it in the browser first — to a width/height a screen is
+// perfectly readable at anyway — keeps every upload comfortably under that limit and makes the
+// API call itself faster and cheaper.
+function resizeImageForUpload(file, maxDimension = 1280) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const objectUrl = URL.createObjectURL(file);
+
+    img.onload = () => {
+      const scale = Math.min(1, maxDimension / Math.max(img.width, img.height));
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.round(img.width * scale);
+      canvas.height = Math.round(img.height * scale);
+      canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
+      URL.revokeObjectURL(objectUrl);
+      resolve(canvas.toDataURL("image/jpeg", 0.9));
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      reject(new Error("Couldn't read that image."));
+    };
+    img.src = objectUrl;
+  });
+}
+
+async function fetchImportedExercises(imageDataUrl) {
+  const response = await fetch(IMPORT_API_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ image: imageDataUrl })
+  });
+
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.error || "Something went wrong.");
+  }
+
+  return data.exercises;
+}
+
+// One editable row per extracted exercise — deliberately editable rather than read-only, since
+// reading a screenshot can misfire on a blurry number or an unusual exercise name, and this is
+// going straight into the real log rather than just a template draft.
+function addImportRow(prefill) {
+  const rowsContainer = document.getElementById("import-exercise-rows");
+
+  const row = document.createElement("div");
+  row.className = "exercise-row-group";
+  row.innerHTML = `
+    <div class="exercise-row">
+      <input type="text" class="row-name" placeholder="Exercise" value="${prefill ? prefill.name : ""}" required>
+      <button type="button" class="remove-row-btn" aria-label="Remove exercise">&times;</button>
+    </div>
+    <div class="exercise-row-fields strength-fields">
+      <input type="number" class="row-sets" placeholder="Sets" min="1" value="${prefill ? prefill.sets : ""}">
+      <input type="number" class="row-reps" placeholder="Reps" min="1" value="${prefill ? prefill.reps : ""}">
+      <input type="number" class="row-weight" placeholder="Weight (kg)" min="0" step="0.5" value="${prefill && prefill.weight != null ? prefill.weight : ""}">
+    </div>
+  `;
+
+  row.querySelector(".remove-row-btn").addEventListener("click", () => row.remove());
+
+  rowsContainer.appendChild(row);
+}
+
+function renderImportResults(exercises) {
+  document.getElementById("import-exercise-rows").innerHTML = "";
+  exercises.forEach((exercise) => addImportRow(exercise));
+  document.getElementById("import-result-section").hidden = false;
+}
+
+if (document.getElementById("import-form")) {
+  document.getElementById("import-date").value = toDateString(new Date());
+
+  document.getElementById("screenshot-input").addEventListener("change", (event) => {
+    const file = event.target.files[0];
+    const previewEl = document.getElementById("screenshot-preview");
+    if (!file) {
+      previewEl.hidden = true;
+      return;
+    }
+
+    if (lastImportPreviewUrl) URL.revokeObjectURL(lastImportPreviewUrl);
+    lastImportPreviewUrl = URL.createObjectURL(file);
+    previewEl.src = lastImportPreviewUrl;
+    previewEl.hidden = false;
+  });
+
+  document.getElementById("import-form").addEventListener("submit", async (event) => {
+    event.preventDefault();
+
+    const fileInput = document.getElementById("screenshot-input");
+    const errorEl = document.getElementById("import-error");
+    const submitBtn = document.getElementById("import-btn");
+
+    errorEl.hidden = true;
+    document.getElementById("import-result-section").hidden = true;
+
+    const file = fileInput.files[0];
+    if (!file) return;
+
+    submitBtn.disabled = true;
+    submitBtn.textContent = "Reading screenshot...";
+
+    try {
+      const imageDataUrl = await resizeImageForUpload(file);
+      const exercises = await fetchImportedExercises(imageDataUrl);
+
+      if (exercises.length === 0) {
+        throw new Error("Couldn't find any exercises in that screenshot. Try a clearer photo.");
+      }
+
+      renderImportResults(exercises);
+    } catch (error) {
+      errorEl.textContent = error.message;
+      errorEl.hidden = false;
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = "Extract exercises";
+    }
+  });
+
+  document.getElementById("add-import-row").addEventListener("click", () => addImportRow(null));
+
+  document.getElementById("save-import-btn").addEventListener("click", () => {
+    const date = document.getElementById("import-date").value;
+
+    Array.from(document.querySelectorAll("#import-exercise-rows .exercise-row-group")).forEach((row) => {
+      trainingLog.push({
+        date,
+        exercise: row.querySelector(".row-name").value,
+        type: "strength",
+        sets: Number(row.querySelector(".row-sets").value) || 0,
+        reps: Number(row.querySelector(".row-reps").value) || 0,
+        weight: row.querySelector(".row-weight").value
+          ? Number(row.querySelector(".row-weight").value)
+          : null
+      });
+    });
+
+    saveLog();
+
+    // Jump to History so Steph can see the imported entries land on the right day.
+    window.location.href = "history.html";
+  });
+
+  document.getElementById("discard-import-btn").addEventListener("click", () => {
+    document.getElementById("import-result-section").hidden = true;
+    document.getElementById("import-form").reset();
+    document.getElementById("screenshot-preview").hidden = true;
+    document.getElementById("import-date").value = toDateString(new Date());
+  });
+}
+
 // ---------- BOTTOM NAV ----------
 
 // A small dot on the Timer link so a rest timer counting down on another page isn't

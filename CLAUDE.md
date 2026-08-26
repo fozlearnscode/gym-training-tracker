@@ -13,10 +13,11 @@ This file is read automatically at the start of every Claude Code session in thi
 
 ## Current architecture
 
-- `index.html`, `log.html`, `timer.html`, `plan.html`, `templates.html`, `history.html`, `videos.html`, `suggest.html` — markup only, no inline logic. Every page shares the same bottom tab bar; when adding a new page, add its tab link to all the others too.
+- `index.html`, `log.html`, `timer.html`, `plan.html`, `templates.html`, `history.html`, `videos.html`, `suggest.html`, `import.html` — markup only, no inline logic. Every page shares the same bottom tab bar; when adding a new page, add its tab link to all the others too.
 - `style.css` — all styling
 - `script.js` — all application logic, shared across every page (each render function guards itself with `if (!container) return` for pages that don't have that element)
 - `api/suggest-template.js` — the one exception to "vanilla, no backend": a small Vercel serverless function that calls the Claude API on the site's behalf. See the Phase 3 entry below and the comments in that file for the full why.
+- `api/import-screenshot.js` — same exception, for Phase 3.5: a vision-capable call to Claude that reads a workout screenshot and extracts exercises.
 - `localStorage` keys: `templates`, `weeklyAssignments`, `trainingLog`, `savedVideos`, `timerState`, `activeTab`
 
 Exercises (inside templates, and inside logged entries) always carry a `type` field: `"strength"` (uses `sets`/`reps`/`weight`) or `"cardio"` (uses `distance`/`duration`). Always branch on `type` when touching exercise-related rendering or logging code — don't assume one shape fits all exercises.
@@ -28,6 +29,7 @@ Stats and streaks (`calculateStreak`, `calculateLast30DayStats`) are derived, no
 - **Phase 1 — COMPLETE.** Weekly plan, templates, strength + cardio logging, calendar view, rest timer, stats/streaks.
 - **Phase 2 — COMPLETE.** Save TikTok workout videos via TikTok's public oEmbed endpoint (`https://www.tiktok.com/oembed`, CORS-enabled, no key needed). Saved as `savedVideos` in `localStorage`; the embed itself is rebuilt from `videoId` on every render rather than storing TikTok's returned HTML, since that HTML embeds a signed thumbnail URL that expires.
 - **Phase 3 — COMPLETE.** AI-generated template suggestions. `suggest.html` posts a short goal string to `api/suggest-template.js` (deployed separately on Vercel — GitHub Pages can't run server code), which calls the Claude API (`claude-opus-5`, structured JSON output via a Zod schema) and returns a draft template the user can review and save into `templates`. The Anthropic API key lives only in Vercel's environment variables, never in this repo or in client-side code. A daily request cap (`DAILY_LIMIT` in that file, currently 15) is enforced server-side via a small Upstash Redis counter, since this is the one feature in the app with a real per-use cost. `script.js`'s `SUGGEST_API_URL` constant must point at the deployed Vercel function's URL.
+- **Phase 3.5 — COMPLETE.** Screenshot import. `import.html` lets Steph upload a screenshot of a workout app screen (e.g. Heather Robertson Fitness); the image is resized in the browser (`resizeImageForUpload` in `script.js`, capped at 1280px so it stays well under Vercel's ~4.5MB request body limit) and posted to `api/import-screenshot.js`, which reuses the same Phase 3 infrastructure — same Vercel deployment, same Anthropic key, same Upstash-backed daily cap pattern, just a separate `DAILY_LIMIT` counter (`imports:${today}`) so the two AI features don't share a budget. Claude reads the screenshot with vision and returns structured strength exercises (name/sets/reps/weight, weight converted to kg if shown in lbs); the user reviews and edits the extracted rows before saving them straight into `trainingLog` for a chosen date. `script.js`'s `IMPORT_API_URL` constant must point at the same deployed Vercel function's URL as `SUGGEST_API_URL`.
 
 ## Explicitly rejected approaches — do not attempt
 
