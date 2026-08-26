@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gym & Training Tracker</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,400;0,600;1,500&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <header class="site-header">
+    <p class="eyebrow" id="countdown-text">Loading countdown...</p>
+    <h1 class="wordmark">Gym &amp; Training Tracker</h1>
+  </header>
+
+  <main>
+
+    <nav class="week-trail" aria-label="This week's progress" id="week-trail">
+      <!-- 7 trail-day dots filled in by script.js -->
+    </nav>
+
+    <section id="stats-section" class="card">
+      <h2>Stats</h2>
+      <div class="stats-grid" id="stats-grid">
+        <!-- filled in by script.js -->
+      </div>
+    </section>
+
+    <section id="today-section" class="card">
+      <h2>Today's plan</h2>
+      <div id="today-plan">
+        <!-- filled in by script.js -->
+      </div>
+    </section>
+
+    <section id="timer-section" class="card">
+      <h2>Rest timer</h2>
+      <div class="timer-display" id="timer-display">01:30</div>
+
+      <div class="timer-presets">
+        <button type="button" class="preset-btn" data-seconds="60">60s</button>
+        <button type="button" class="preset-btn" data-seconds="90">90s</button>
+        <button type="button" class="preset-btn" data-seconds="120">120s</button>
+      </div>
+
+      <div class="timer-controls">
+        <button type="button" id="timer-start" class="btn-primary">Start</button>
+        <button type="button" id="timer-pause" class="btn-secondary">Pause</button>
+        <button type="button" id="timer-reset" class="btn-text">Reset</button>
+      </div>
+    </section>
+
+    <section id="templates-section" class="card">
+      <h2>Templates</h2>
+      <div id="template-list">
+        <!-- filled in by script.js -->
+      </div>
+      <button type="button" id="new-template-btn" class="btn-secondary">+ New template</button>
+
+      <div id="template-form-wrapper" hidden>
+        <form id="template-form">
+          <div class="field">
+            <label for="template-name">Template name</label>
+            <input type="text" id="template-name" required>
+          </div>
+
+          <div id="template-exercise-rows">
+            <!-- exercise rows added by script.js -->
+          </div>
+          <button type="button" id="add-exercise-row" class="btn-secondary">+ Add exercise</button>
+
+          <div class="form-actions">
+            <button type="submit" class="btn-primary">Save template</button>
+            <button type="button" id="cancel-template" class="btn-text">Cancel</button>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <section id="assign-section" class="card">
+      <h2>Weekly plan</h2>
+      <div id="assign-grid">
+        <!-- filled in by script.js -->
+      </div>
+    </section>
+
+    <section id="log-section" class="card">
+      <h2>Log a set</h2>
+      <form id="log-form">
+        <div class="field">
+          <label for="exercise-name">Exercise</label>
+          <input type="text" id="exercise-name" required>
+        </div>
+
+        <div class="field-row">
+          <div class="field">
+            <label for="sets">Sets</label>
+            <input type="number" id="sets" min="1" required>
+          </div>
+          <div class="field">
+            <label for="reps">Reps</label>
+            <input type="number" id="reps" min="1" required>
+          </div>
+          <div class="field">
+            <label for="weight">Weight (kg)</label>
+            <input type="number" id="weight" min="0" step="0.5">
+          </div>
+        </div>
+
+        <button type="submit" class="btn-primary">Save entry</button>
+      </form>
+    </section>
+
+    <section id="history-section" class="card">
+      <div class="calendar-header">
+        <button id="prev-month" class="btn-icon" aria-label="Previous month">&lsaquo;</button>
+        <h2 id="calendar-month-label"></h2>
+        <button id="next-month" class="btn-icon" aria-label="Next month">&rsaquo;</button>
+      </div>
+      <div class="calendar-weekdays">
+        <span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span><span>Su</span>
+      </div>
+      <div class="calendar-grid" id="calendar-grid">
+        <!-- filled in by script.js -->
+      </div>
+      <div id="day-detail">
+        <!-- filled in by script.js -->
+      </div>
+    </section>
+
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>
