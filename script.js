@@ -723,8 +723,8 @@ if (document.getElementById("new-template-btn")) {
 // This is the one place the app talks to a server we control, rather than a public API (like
 // TikTok's oEmbed) directly. The Anthropic API key has to stay secret, so a small Vercel
 // function does the actual talking to Claude — see api/suggest-template.js and CLAUDE.md for
-// why. Replace this with your own Vercel deployment's URL once it's live.
-const SUGGEST_API_URL = "https://YOUR-VERCEL-PROJECT.vercel.app/api/suggest-template";
+// why.
+const SUGGEST_API_URL = "https://gym-training-tracker-gamma.vercel.app/api/suggest-template";
 
 let lastSuggestedTemplate = null; // holds the AI's draft between "Generate" and "Save"
 
