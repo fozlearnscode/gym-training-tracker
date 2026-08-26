@@ -11,21 +11,21 @@ function generateId() {
 function seedTemplates() {
   // Starting templates, used only the very first time the app runs on a device.
   return [
-    { id: generateId(), name: "Run day", exercises: [{ name: "5km run", sets: 1, reps: 1 }] },
+    { id: generateId(), name: "Run day", exercises: [{ name: "5km run", type: "cardio", distance: 5, duration: 30 }] },
     {
       id: generateId(),
       name: "Leg day",
       exercises: [
-        { name: "Squats", sets: 3, reps: 10 },
-        { name: "Lunges", sets: 3, reps: 12 }
+        { name: "Squats", type: "strength", sets: 3, reps: 10 },
+        { name: "Lunges", type: "strength", sets: 3, reps: 12 }
       ]
     },
     {
       id: generateId(),
       name: "Core & mobility",
       exercises: [
-        { name: "Plank", sets: 3, reps: 1 },
-        { name: "Mountain climbers", sets: 3, reps: 20 }
+        { name: "Plank", type: "strength", sets: 3, reps: 1 },
+        { name: "Mountain climbers", type: "strength", sets: 3, reps: 20 }
       ]
     }
   ];
@@ -139,6 +139,7 @@ function calculateLast30DayStats() {
 
   const recentEntries = trainingLog.filter((entry) => entry.date >= cutoffString);
   const totalSets = recentEntries.reduce((sum, entry) => sum + (entry.sets || 0), 0);
+  const totalDistance = recentEntries.reduce((sum, entry) => sum + (entry.distance || 0), 0);
 
   const datesWithEntries = [...new Set(recentEntries.map((entry) => entry.date))];
   const sessionsCompleted = datesWithEntries.filter((dateString) => {
@@ -147,7 +148,7 @@ function calculateLast30DayStats() {
     return plan && isDayFullyLogged(dateString, plan);
   }).length;
 
-  return { totalSets, sessionsCompleted };
+  return { totalSets, totalDistance, sessionsCompleted };
 }
 
 function renderStats() {
@@ -155,7 +156,7 @@ function renderStats() {
   if (!container) return; // this page doesn't show stats
 
   const streak = calculateStreak();
-  const { totalSets, sessionsCompleted } = calculateLast30DayStats();
+  const { totalSets, totalDistance, sessionsCompleted } = calculateLast30DayStats();
 
   container.innerHTML = `
     <div class="stat-block">
@@ -169,6 +170,10 @@ function renderStats() {
     <div class="stat-block">
       <span class="stat-number">${totalSets}</span>
       <span class="stat-label">sets logged (30d)</span>
+    </div>
+    <div class="stat-block">
+      <span class="stat-number">${totalDistance}</span>
+      <span class="stat-label">km run (30d)</span>
     </div>
   `;
 }
@@ -534,15 +539,39 @@ function renderTemplateList() {
 
 function addExerciseRow(prefill) {
   const rowsContainer = document.getElementById("template-exercise-rows");
+  const isCardio = prefill && prefill.type === "cardio";
 
   const row = document.createElement("div");
-  row.className = "exercise-row";
+  row.className = "exercise-row-group";
   row.innerHTML = `
-    <input type="text" class="row-name" placeholder="Exercise" value="${prefill ? prefill.name : ""}" required>
-    <input type="number" class="row-sets" placeholder="Sets" min="1" value="${prefill ? prefill.sets : ""}" required>
-    <input type="number" class="row-reps" placeholder="Reps" min="1" value="${prefill ? prefill.reps : ""}" required>
-    <button type="button" class="remove-row-btn" aria-label="Remove exercise">&times;</button>
+    <div class="exercise-row">
+      <input type="text" class="row-name" placeholder="Exercise" value="${prefill ? prefill.name : ""}" required>
+      <select class="row-type">
+        <option value="strength" ${!isCardio ? "selected" : ""}>Strength</option>
+        <option value="cardio" ${isCardio ? "selected" : ""}>Cardio</option>
+      </select>
+      <button type="button" class="remove-row-btn" aria-label="Remove exercise">&times;</button>
+    </div>
+    <div class="exercise-row-fields strength-fields" ${isCardio ? "hidden" : ""}>
+      <input type="number" class="row-sets" placeholder="Sets" min="1" value="${!isCardio && prefill ? prefill.sets : ""}">
+      <input type="number" class="row-reps" placeholder="Reps" min="1" value="${!isCardio && prefill ? prefill.reps : ""}">
+    </div>
+    <div class="exercise-row-fields cardio-fields" ${isCardio ? "" : "hidden"}>
+      <input type="number" class="row-distance" placeholder="Distance (km)" min="0" step="0.1" value="${isCardio ? prefill.distance : ""}">
+      <input type="number" class="row-duration" placeholder="Duration (min)" min="0" value="${isCardio ? prefill.duration : ""}">
+    </div>
   `;
+
+  const typeSelect = row.querySelector(".row-type");
+  const strengthFields = row.querySelector(".strength-fields");
+  const cardioFields = row.querySelector(".cardio-fields");
+
+  // The select's value decides which fields show.
+  typeSelect.addEventListener("change", () => {
+    const showCardio = typeSelect.value === "cardio";
+    strengthFields.hidden = showCardio;
+    cardioFields.hidden = !showCardio;
+  });
 
   row.querySelector(".remove-row-btn").addEventListener("click", () => row.remove());
 
@@ -601,11 +630,26 @@ if (document.getElementById("new-template-btn")) {
 
     const name = document.getElementById("template-name").value;
 
-    const exercises = Array.from(document.querySelectorAll(".exercise-row")).map((row) => ({
-      name: row.querySelector(".row-name").value,
-      sets: Number(row.querySelector(".row-sets").value),
-      reps: Number(row.querySelector(".row-reps").value)
-    }));
+    const exercises = Array.from(document.querySelectorAll(".exercise-row-group")).map((row) => {
+      const type = row.querySelector(".row-type").value;
+      const name = row.querySelector(".row-name").value;
+
+      if (type === "cardio") {
+        return {
+          name,
+          type,
+          distance: Number(row.querySelector(".row-distance").value) || 0,
+          duration: Number(row.querySelector(".row-duration").value) || 0
+        };
+      }
+
+      return {
+        name,
+        type,
+        sets: Number(row.querySelector(".row-sets").value) || 0,
+        reps: Number(row.querySelector(".row-reps").value) || 0
+      };
+    });
 
     if (editingTemplateId) {
       const template = templates.find((t) => t.id === editingTemplateId);
@@ -756,6 +800,7 @@ function renderTodayPlan() {
     const existingEntry = trainingLog.find(
       (entry) => entry.date === todayString && entry.exercise === exercise.name
     );
+    const isCardio = exercise.type === "cardio";
 
     const item = document.createElement("li");
     item.className = "exercise-item";
@@ -767,29 +812,71 @@ function renderTodayPlan() {
 
     const info = document.createElement("div");
     info.className = "exercise-info";
+    const metaText = isCardio ? `${exercise.distance}km target` : `${exercise.sets} x ${exercise.reps}`;
     info.innerHTML = `
       <span class="exercise-name">${exercise.name}</span>
-      <span class="exercise-meta">${exercise.sets} x ${exercise.reps}</span>
+      <span class="exercise-meta">${metaText}</span>
     `;
 
-    const weightInput = document.createElement("input");
-    weightInput.type = "number";
-    weightInput.className = "weight-input-small";
-    weightInput.placeholder = "kg";
-    weightInput.min = "0";
-    weightInput.step = "0.5";
-    weightInput.value = existingEntry ? existingEntry.weight ?? "" : "";
+    const inputsWrapper = document.createElement("div");
+    inputsWrapper.className = "exercise-inputs";
+
+    // Build the right pair (or single) input for this exercise's type.
+    let firstInput, secondInput;
+    if (isCardio) {
+      firstInput = document.createElement("input");
+      firstInput.type = "number";
+      firstInput.className = "weight-input-small";
+      firstInput.placeholder = "km";
+      firstInput.min = "0";
+      firstInput.step = "0.1";
+      firstInput.value = existingEntry ? existingEntry.distance ?? "" : "";
+
+      secondInput = document.createElement("input");
+      secondInput.type = "number";
+      secondInput.className = "weight-input-small";
+      secondInput.placeholder = "min";
+      secondInput.min = "0";
+      secondInput.value = existingEntry ? existingEntry.duration ?? "" : "";
+
+      inputsWrapper.appendChild(firstInput);
+      inputsWrapper.appendChild(secondInput);
+    } else {
+      firstInput = document.createElement("input");
+      firstInput.type = "number";
+      firstInput.className = "weight-input-small";
+      firstInput.placeholder = "kg";
+      firstInput.min = "0";
+      firstInput.step = "0.5";
+      firstInput.value = existingEntry ? existingEntry.weight ?? "" : "";
+
+      inputsWrapper.appendChild(firstInput);
+    }
+
+    function buildLogEntry() {
+      if (isCardio) {
+        return {
+          date: todayString,
+          exercise: exercise.name,
+          type: "cardio",
+          distance: firstInput.value ? Number(firstInput.value) : exercise.distance,
+          duration: secondInput.value ? Number(secondInput.value) : exercise.duration
+        };
+      }
+      return {
+        date: todayString,
+        exercise: exercise.name,
+        type: "strength",
+        sets: exercise.sets,
+        reps: exercise.reps,
+        weight: firstInput.value ? Number(firstInput.value) : null
+      };
+    }
 
     // --- Event listener #1: checking the box logs (or unlogs) this exercise ---
     checkbox.addEventListener("change", () => {
       if (checkbox.checked) {
-        trainingLog.push({
-          date: todayString,
-          exercise: exercise.name,
-          sets: exercise.sets,
-          reps: exercise.reps,
-          weight: weightInput.value ? Number(weightInput.value) : null
-        });
+        trainingLog.push(buildLogEntry());
       } else {
         trainingLog = trainingLog.filter(
           (entry) => !(entry.date === todayString && entry.exercise === exercise.name)
@@ -802,22 +889,30 @@ function renderTodayPlan() {
       renderDayDetail();
     });
 
-    // --- Event listener #2: editing weight updates today's entry, if it exists ---
-    weightInput.addEventListener("change", () => {
+    // --- Event listener #2: editing the input(s) updates today's entry, if it exists ---
+    function handleInputChange() {
       const entry = trainingLog.find(
         (e) => e.date === todayString && e.exercise === exercise.name
       );
-      if (entry) {
-        entry.weight = weightInput.value ? Number(weightInput.value) : null;
-        saveLog();
-        renderCalendar();
-        renderDayDetail();
+      if (!entry) return;
+
+      if (isCardio) {
+        entry.distance = firstInput.value ? Number(firstInput.value) : null;
+        entry.duration = secondInput.value ? Number(secondInput.value) : null;
+      } else {
+        entry.weight = firstInput.value ? Number(firstInput.value) : null;
       }
-    });
+      saveLog();
+      renderCalendar();
+      renderDayDetail();
+    }
+
+    firstInput.addEventListener("change", handleInputChange);
+    if (secondInput) secondInput.addEventListener("change", handleInputChange);
 
     item.appendChild(checkbox);
     item.appendChild(info);
-    item.appendChild(weightInput);
+    item.appendChild(inputsWrapper);
     list.appendChild(item);
   });
 
@@ -923,6 +1018,9 @@ function renderDayDetail() {
 
   const itemsHtml = entries
     .map((entry) => {
+      if (entry.type === "cardio") {
+        return `<li><span>${entry.exercise}</span><span class="stat">${entry.distance}km · ${entry.duration}min</span></li>`;
+      }
       const weightText = entry.weight ? `@ ${entry.weight}kg` : "";
       return `<li><span>${entry.exercise}</span><span class="stat">${entry.sets}x${entry.reps} ${weightText}</span></li>`;
     })
@@ -956,24 +1054,35 @@ function renderCountdown() {
 
 // ---------- MANUAL LOG FORM (for anything outside the plan) ----------
 
+function toggleLogFormFields() {
+  const showCardio = document.getElementById("log-type").value === "cardio";
+  document.getElementById("strength-fields").hidden = showCardio;
+  document.getElementById("cardio-fields").hidden = !showCardio;
+}
+
 if (document.getElementById("log-form")) {
+  document.getElementById("log-type").addEventListener("change", toggleLogFormFields);
+
   document.getElementById("log-form").addEventListener("submit", (event) => {
     event.preventDefault(); // stops the page from reloading, which forms do by default
 
     const exerciseName = document.getElementById("exercise-name").value;
-    const sets = Number(document.getElementById("sets").value);
-    const reps = Number(document.getElementById("reps").value);
-    const weight = document.getElementById("weight").value
-      ? Number(document.getElementById("weight").value)
-      : null;
+    const type = document.getElementById("log-type").value;
 
-    trainingLog.push({
-      date: toDateString(new Date()),
-      exercise: exerciseName,
-      sets,
-      reps,
-      weight
-    });
+    let entry = { date: toDateString(new Date()), exercise: exerciseName, type };
+
+    if (type === "cardio") {
+      entry.distance = Number(document.getElementById("distance").value) || 0;
+      entry.duration = Number(document.getElementById("duration").value) || 0;
+    } else {
+      entry.sets = Number(document.getElementById("sets").value) || 0;
+      entry.reps = Number(document.getElementById("reps").value) || 0;
+      entry.weight = document.getElementById("weight").value
+        ? Number(document.getElementById("weight").value)
+        : null;
+    }
+
+    trainingLog.push(entry);
 
     saveLog();
     renderCalendar();
@@ -981,6 +1090,7 @@ if (document.getElementById("log-form")) {
     renderWeekTrail();
     renderStats();
     event.target.reset();
+    toggleLogFormFields(); // reset() puts the select back to "Strength" — sync the fields to match
   });
 }
 

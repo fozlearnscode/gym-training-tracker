@@ -317,6 +317,12 @@ main {
   color: var(--color-ink);
 }
 
+.exercise-inputs {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
 .rest-day-message {
   color: var(--color-stone);
   font-style: italic;
@@ -330,6 +336,10 @@ main {
   flex-direction: column;
   gap: 4px;
   margin-bottom: 14px;
+}
+
+.field-row[hidden] {
+  display: none;
 }
 
 .field-row {
@@ -639,6 +649,16 @@ input:focus-visible {
   border-top: 1px solid var(--color-line);
 }
 
+.exercise-row-group {
+  margin-bottom: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--color-line);
+}
+
+.exercise-row-group:last-child {
+  border-bottom: none;
+}
+
 .exercise-row {
   display: flex;
   gap: 8px;
@@ -656,12 +676,46 @@ input:focus-visible {
   color: var(--color-ink);
 }
 
+.row-type {
+  font-family: var(--font-body);
+  font-size: 13px;
+  padding: 8px 6px;
+  border-radius: 6px;
+  border: 1px solid var(--color-line);
+  background: var(--color-bg);
+  color: var(--color-ink);
+  flex-shrink: 0;
+}
+
+.exercise-row-fields[hidden] {
+  display: none;
+}
+
+.exercise-row-fields {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.exercise-row-fields input {
+  flex: 1;
+  font-family: var(--font-mono);
+  font-size: 14px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--color-line);
+  background: var(--color-bg);
+  color: var(--color-ink);
+}
+
 .row-name {
   flex: 2;
 }
 
 .row-sets,
-.row-reps {
+.row-reps,
+.row-distance,
+.row-duration {
   flex: 1;
   width: 0; /* let flex control width instead of the input's default size */
 }
