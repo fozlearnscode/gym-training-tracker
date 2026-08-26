@@ -718,6 +718,107 @@ if (document.getElementById("new-template-btn")) {
   });
 }
 
+// ---------- AI TEMPLATE SUGGESTIONS (Phase 3) ----------
+
+// This is the one place the app talks to a server we control, rather than a public API (like
+// TikTok's oEmbed) directly. The Anthropic API key has to stay secret, so a small Vercel
+// function does the actual talking to Claude — see api/suggest-template.js and CLAUDE.md for
+// why. Replace this with your own Vercel deployment's URL once it's live.
+const SUGGEST_API_URL = "https://YOUR-VERCEL-PROJECT.vercel.app/api/suggest-template";
+
+let lastSuggestedTemplate = null; // holds the AI's draft between "Generate" and "Save"
+
+async function fetchSuggestedTemplate(goal) {
+  const response = await fetch(SUGGEST_API_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ goal })
+  });
+
+  const data = await response.json();
+  if (!response.ok) {
+    // The server sends back a friendly { error: "..." } message on every failure case
+    // (rate limit hit, bad input, Claude API error) — just surface it as-is.
+    throw new Error(data.error || "Something went wrong.");
+  }
+
+  return data.template;
+}
+
+function renderSuggestedTemplate(template) {
+  const resultSection = document.getElementById("suggest-result-section");
+  const nameEl = document.getElementById("suggest-result-name");
+  const listEl = document.getElementById("suggest-result-list");
+
+  nameEl.textContent = template.name;
+  listEl.innerHTML = template.exercises
+    .map((exercise) => {
+      const meta = exercise.type === "cardio"
+        ? `${exercise.distance}km · ${exercise.duration}min`
+        : `${exercise.sets} x ${exercise.reps}`;
+      return `
+        <li class="exercise-item">
+          <div class="exercise-info">
+            <span class="exercise-name">${exercise.name}</span>
+            <span class="exercise-meta">${meta}</span>
+          </div>
+        </li>
+      `;
+    })
+    .join("");
+
+  resultSection.hidden = false;
+}
+
+if (document.getElementById("suggest-form")) {
+  document.getElementById("suggest-form").addEventListener("submit", async (event) => {
+    event.preventDefault();
+
+    const goalInput = document.getElementById("suggest-goal");
+    const errorEl = document.getElementById("suggest-error");
+    const submitBtn = document.getElementById("suggest-btn");
+
+    errorEl.hidden = true;
+    document.getElementById("suggest-result-section").hidden = true;
+    submitBtn.disabled = true;
+    submitBtn.textContent = "Generating...";
+
+    try {
+      lastSuggestedTemplate = await fetchSuggestedTemplate(goalInput.value.trim());
+      renderSuggestedTemplate(lastSuggestedTemplate);
+    } catch (error) {
+      errorEl.textContent = error.message;
+      errorEl.hidden = false;
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = "Generate suggestion";
+    }
+  });
+
+  document.getElementById("save-suggestion-btn").addEventListener("click", () => {
+    if (!lastSuggestedTemplate) return;
+
+    templates.push({
+      id: generateId(),
+      name: lastSuggestedTemplate.name,
+      exercises: lastSuggestedTemplate.exercises
+    });
+    saveTemplates();
+
+    lastSuggestedTemplate = null;
+    document.getElementById("suggest-result-section").hidden = true;
+    document.getElementById("suggest-form").reset();
+
+    // Jump to the Templates page so Steph can see it landed and assign it to a day.
+    window.location.href = "templates.html";
+  });
+
+  document.getElementById("discard-suggestion-btn").addEventListener("click", () => {
+    lastSuggestedTemplate = null;
+    document.getElementById("suggest-result-section").hidden = true;
+  });
+}
+
 // ---------- WEEKLY ASSIGNMENT GRID ----------
 
 function renderAssignGrid() {

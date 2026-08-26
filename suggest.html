@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <title>History — Steph's Training Tracker</title>
+  <title>AI Suggestion — Steph's Training Tracker</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,400;0,600;1,500&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
@@ -18,20 +18,28 @@
 
   <main>
 
-    <section id="history-section" class="card">
-      <div class="calendar-header">
-        <button id="prev-month" class="btn-icon" aria-label="Previous month">&lsaquo;</button>
-        <h2 id="calendar-month-label"></h2>
-        <button id="next-month" class="btn-icon" aria-label="Next month">&rsaquo;</button>
-      </div>
-      <div class="calendar-weekdays">
-        <span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span><span>Su</span>
-      </div>
-      <div class="calendar-grid" id="calendar-grid">
+    <section id="suggest-section" class="card">
+      <h2>Suggest a template</h2>
+      <form id="suggest-form">
+        <div class="field">
+          <label for="suggest-goal">What kind of workout?</label>
+          <input type="text" id="suggest-goal" placeholder="e.g. upper body, 20 minutes" maxlength="300" required>
+        </div>
+
+        <p class="form-error" id="suggest-error" hidden></p>
+
+        <button type="submit" class="btn-primary" id="suggest-btn">Generate suggestion</button>
+      </form>
+    </section>
+
+    <section id="suggest-result-section" class="card" hidden>
+      <h2 id="suggest-result-name"></h2>
+      <ul class="exercise-list" id="suggest-result-list">
         <!-- filled in by script.js -->
-      </div>
-      <div id="day-detail">
-        <!-- filled in by script.js -->
+      </ul>
+      <div class="form-actions">
+        <button type="button" class="btn-primary" id="save-suggestion-btn">Save this template</button>
+        <button type="button" class="btn-text" id="discard-suggestion-btn">Discard</button>
       </div>
     </section>
 
@@ -69,7 +77,7 @@
         </span>
         <span class="tab-label">Templates</span>
       </a>
-      <a href="history.html" class="tab-btn is-active" aria-current="page">
+      <a href="history.html" class="tab-btn">
         <span class="tab-icon-wrap">
           <svg class="tab-icon" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 9h18M8 3v4M16 3v4"/></svg>
         </span>
@@ -81,7 +89,7 @@
         </span>
         <span class="tab-label">Videos</span>
       </a>
-      <a href="suggest.html" class="tab-btn">
+      <a href="suggest.html" class="tab-btn is-active" aria-current="page">
         <span class="tab-icon-wrap">
           <svg class="tab-icon tab-icon-filled" viewBox="0 0 24 24"><path d="M9 4L11.5 9.5L17 12L11.5 14.5L9 20L6.5 14.5L1 12L6.5 9.5L9 4M19 9L17.74 6.26L15 5L17.74 3.75L19 1L20.25 3.75L23 5L20.25 6.26L19 9M19 23L17.74 20.26L15 19L17.74 17.75L19 15L20.25 17.75L23 19L20.25 20.26L19 23Z"/></svg>
         </span>

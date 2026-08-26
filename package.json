@@ -1,0 +1,10 @@
+{
+  "name": "gym-training-tracker-api",
+  "private": true,
+  "type": "module",
+  "description": "Dependencies for the /api serverless function only. The site itself (index.html, script.js, style.css, etc.) is plain HTML/CSS/JS served as-is by GitHub Pages and never runs npm install — this file exists purely so Vercel can install what /api/suggest-template.js needs.",
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.120.0",
+    "zod": "^4.0.0"
+  }
+}

@@ -240,6 +240,13 @@ main {
   stroke-linejoin: round;
 }
 
+/* The sparkle icon (Suggest tab) reads much better solid than as an outline —
+   this overrides the stroke treatment above just for that one icon. */
+.tab-icon-filled {
+  fill: currentColor;
+  stroke: none;
+}
+
 .tab-dot {
   position: absolute;
   top: -1px;
