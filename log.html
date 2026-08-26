@@ -27,11 +27,17 @@
         </div>
 
         <div class="field">
-          <label for="log-type">Type</label>
-          <select id="log-type">
-            <option value="strength">Strength</option>
-            <option value="cardio">Cardio</option>
-          </select>
+          <label>Type</label>
+          <div class="type-toggle" id="log-type" role="group" aria-label="Exercise type" data-value="strength">
+            <button type="button" class="type-toggle-btn is-active" data-type="strength" aria-pressed="true">
+              <svg class="type-icon" viewBox="0 0 24 24"><rect x="1.5" y="8" width="3" height="8" rx="1.3" fill="currentColor"/><rect x="19.5" y="8" width="3" height="8" rx="1.3" fill="currentColor"/><rect x="5.5" y="9.5" width="2.5" height="5" rx="1" fill="currentColor"/><rect x="16" y="9.5" width="2.5" height="5" rx="1" fill="currentColor"/><rect x="7.5" y="10.8" width="9" height="2.4" rx="1.2" fill="currentColor"/></svg>
+              <span>Strength</span>
+            </button>
+            <button type="button" class="type-toggle-btn" data-type="cardio" aria-pressed="false">
+              <svg class="type-icon" viewBox="0 0 24 24"><path class="rt-limb" d="M15 6.2L11.3 12.6"/><path class="rt-limb" d="M11.3 12.6L15.2 10.8L17.3 15.8"/><path class="rt-limb" d="M11.3 12.6L7.2 13.6L4.7 18.3"/><path class="rt-limb" d="M13.4 7.6L17.6 6.3L20.2 8.8"/><path class="rt-limb" d="M13.4 7.6L9.3 9.1L6.8 7"/><circle class="rt-head" cx="16.3" cy="4" r="2"/><path class="rt-head" d="M14.7 2.7c-2.2-0.9-4 0-4.2 2 1.3-0.7 2.7-1.3 4.2-2z"/></svg>
+              <span>Cardio</span>
+            </button>
+          </div>
         </div>
 
         <div class="field-row" id="strength-fields">

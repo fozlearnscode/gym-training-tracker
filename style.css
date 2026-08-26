@@ -676,15 +676,71 @@ input:focus-visible {
   color: var(--color-ink);
 }
 
-.row-type {
-  font-family: var(--font-body);
-  font-size: 13px;
-  padding: 8px 6px;
-  border-radius: 6px;
+/* Strength/cardio type toggle — icon buttons shared by the log form and template rows */
+
+.type-toggle {
+  display: flex;
+  gap: 8px;
+}
+
+.type-toggle-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 12px;
+  border-radius: 8px;
   border: 1px solid var(--color-line);
   background: var(--color-bg);
   color: var(--color-ink);
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.type-toggle-btn:hover {
+  border-color: var(--color-coral);
+  color: var(--color-coral);
+}
+
+.type-toggle-btn.is-active {
+  background: var(--color-coral);
+  border-color: var(--color-coral);
+  color: var(--color-card);
+}
+
+.type-icon {
+  width: 18px;
+  height: 18px;
   flex-shrink: 0;
+}
+
+/* Runner icon: chunky rounded strokes for the limbs, filled head + ponytail — a bolder,
+   more pictogram-like weight than the thin-line icons used elsewhere in the app. */
+.rt-limb {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.rt-head {
+  fill: currentColor;
+}
+
+/* Compact, icon-only version inline in a template exercise row */
+
+.row-type {
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.row-type .type-toggle-btn {
+  flex: none;
+  padding: 8px 10px;
 }
 
 .exercise-row-fields[hidden] {
