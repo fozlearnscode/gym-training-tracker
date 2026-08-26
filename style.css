@@ -59,55 +59,111 @@ main {
   margin: 0;
 }
 
-/* Week trail — the signature element */
+/* Week view — calendar-page cards, the signature element */
 
 .week-trail {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  position: relative;
-  padding: 8px 4px;
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 8px;
+  padding: 10px 2px 2px;
 }
 
-.week-trail::before {
-  content: "";
+.day-card {
+  position: relative;
+  background: var(--color-card);
+  border: 1px solid var(--color-line);
+  border-radius: 10px;
+  min-height: 90px;
+  display: flex;
+  flex-direction: column;
+}
+
+/* The two small "binder holes" peeking above the card — the calendar-page detail */
+.day-card-rings {
   position: absolute;
-  left: 20px;
-  right: 20px;
-  top: 50%;
-  height: 2px;
-  background: var(--color-line);
-  transform: translateY(-50%);
-  z-index: 0;
+  top: -4px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 12px;
 }
 
-.trail-day {
-  position: relative;
-  z-index: 1;
-  width: 36px;
-  height: 36px;
+.day-card-rings span {
+  width: 6px;
+  height: 6px;
   border-radius: 50%;
-  background: var(--color-bg);
-  border: 2px solid var(--color-line);
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  background: var(--color-line);
+  border: 2px solid var(--color-bg);
+}
+
+.day-card.is-today .day-card-rings span {
+  background: var(--color-coral);
+}
+
+.day-card-header {
   font-family: var(--font-mono);
   font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  text-align: center;
+  padding: 7px 4px;
+  border-radius: 9px 9px 0 0;
+  background: var(--color-bg);
   color: var(--color-stone);
 }
 
-.trail-day.is-complete {
+.day-card.is-complete .day-card-header {
   background: var(--color-green);
-  border-color: var(--color-green);
   color: var(--color-card);
 }
 
-.trail-day.is-today {
+.day-card.is-today {
   border-color: var(--color-coral);
-  box-shadow: 0 0 0 3px rgba(232, 98, 61, 0.15);
-  color: var(--color-coral);
-  font-weight: 600;
+  box-shadow: 0 0 0 2px rgba(232, 98, 61, 0.15);
+}
+
+.day-card-body {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 6px 5px;
+}
+
+.day-card-session {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--color-ink);
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.day-card.is-rest .day-card-session {
+  font-style: italic;
+  font-weight: 400;
+  color: var(--color-stone);
+}
+
+.day-card-check {
+  position: absolute;
+  bottom: -6px;
+  right: -6px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--color-green);
+  color: var(--color-card);
+  font-size: 11px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--color-bg);
 }
 
 /* Cards */

@@ -477,22 +477,47 @@ function renderWeekTrail() {
     const dayName = dayNames[date.getDay()];
     const plan = findPlanForDay(dayName);
 
-    const dot = document.createElement("div");
-    dot.className = "trail-day";
-    dot.textContent = dayName.slice(0, 2); // e.g. "Mo", "We"
+    const card = document.createElement("div");
+    card.className = "day-card";
+    if (!plan) card.classList.add("is-rest");
+    if (dateString === todayString) card.classList.add("is-today");
 
-    if (dateString === todayString) {
-      dot.classList.add("is-today");
-    }
-
+    let isComplete = false;
     if (plan) {
-      const allDone = plan.exercises.every((ex) =>
+      isComplete = plan.exercises.every((ex) =>
         trainingLog.some((entry) => entry.date === dateString && entry.exercise === ex.name)
       );
-      if (allDone) dot.classList.add("is-complete");
+      if (isComplete) card.classList.add("is-complete");
     }
 
-    trail.appendChild(dot);
+    // The binder-hole dots that make this read as a torn calendar page
+    const rings = document.createElement("div");
+    rings.className = "day-card-rings";
+    rings.innerHTML = "<span></span><span></span>";
+
+    const header = document.createElement("div");
+    header.className = "day-card-header";
+    header.textContent = dayName.slice(0, 2);
+
+    const body = document.createElement("div");
+    body.className = "day-card-body";
+    const sessionLabel = document.createElement("span");
+    sessionLabel.className = "day-card-session";
+    sessionLabel.textContent = plan ? plan.sessionName : "Rest day";
+    body.appendChild(sessionLabel);
+
+    card.appendChild(rings);
+    card.appendChild(header);
+    card.appendChild(body);
+
+    if (isComplete) {
+      const check = document.createElement("div");
+      check.className = "day-card-check";
+      check.textContent = "\u2713"; // checkmark character
+      card.appendChild(check);
+    }
+
+    trail.appendChild(card);
   });
 }
 
