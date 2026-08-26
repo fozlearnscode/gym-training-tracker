@@ -230,6 +230,7 @@ function startTimer() {
   timerRunning = true;
   document.getElementById("timer-display").classList.add("is-running");
   timerInterval = setInterval(tick, 250);
+  updateTimerTabIndicator();
 }
 
 function pauseTimer() {
@@ -244,6 +245,7 @@ function stopTimer() {
   clearInterval(timerInterval);
   timerRunning = false;
   document.getElementById("timer-display").classList.remove("is-running");
+  updateTimerTabIndicator();
 }
 
 function resetTimer() {
@@ -758,6 +760,45 @@ document.getElementById("log-form").addEventListener("submit", (event) => {
   event.target.reset();
 });
 
+// ---------- TABS ----------
+
+const tabButtons = document.querySelectorAll(".tab-btn");
+const tabPanels = document.querySelectorAll(".tab-panel");
+
+function activateTab(tabName) {
+  const matchingButton = Array.from(tabButtons).find((btn) => btn.dataset.tab === tabName);
+  if (!matchingButton) return; // ignore unknown/stale tab names, e.g. from an old localStorage value
+
+  tabButtons.forEach((btn) => {
+    const isActive = btn.dataset.tab === tabName;
+    btn.classList.toggle("is-active", isActive);
+    btn.setAttribute("aria-selected", isActive);
+  });
+
+  tabPanels.forEach((panel) => {
+    panel.hidden = panel.dataset.tabPanel !== tabName;
+  });
+
+  localStorage.setItem("activeTab", tabName);
+}
+
+tabButtons.forEach((btn) => {
+  btn.addEventListener("click", () => activateTab(btn.dataset.tab));
+});
+
+// A small dot on the Timer tab so a rest timer counting down in the background isn't forgotten
+// just because the user switched to another tab.
+function updateTimerTabIndicator() {
+  const timerTabBtn = document.querySelector('.tab-btn[data-tab="timer"]');
+  const existingDot = timerTabBtn.querySelector(".tab-dot");
+
+  if (timerRunning && !existingDot) {
+    timerTabBtn.insertAdjacentHTML("beforeend", '<span class="tab-dot"></span>');
+  } else if (!timerRunning && existingDot) {
+    existingDot.remove();
+  }
+}
+
 // ---------- INITIAL RENDER ----------
 
 renderCountdown();
@@ -768,4 +809,5 @@ renderWeekTrail();
 renderStats();
 renderTodayPlan();
 renderCalendar();
+activateTab(localStorage.getItem("activeTab") || "log");
 renderDayDetail();

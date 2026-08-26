@@ -166,6 +166,67 @@ main {
   border: 2px solid var(--color-bg);
 }
 
+/* Tab navigation — segmented control switching between the panels below */
+
+.tab-nav {
+  display: flex;
+  gap: 4px;
+  background: var(--color-card);
+  border: 1px solid var(--color-line);
+  border-radius: 999px;
+  padding: 4px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.tab-nav::-webkit-scrollbar {
+  display: none;
+}
+
+.tab-btn {
+  flex: 1 0 auto;
+  position: relative;
+  background: none;
+  border: none;
+  border-radius: 999px;
+  padding: 9px 14px;
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-stone);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.tab-btn:hover {
+  color: var(--color-ink);
+}
+
+.tab-btn.is-active {
+  background: var(--color-coral);
+  color: var(--color-card);
+}
+
+.tab-btn:focus-visible {
+  outline: 2px solid var(--color-coral);
+  outline-offset: 2px;
+}
+
+.tab-btn .tab-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--color-coral);
+  margin-left: 6px;
+  vertical-align: middle;
+}
+
+.tab-btn.is-active .tab-dot {
+  background: var(--color-card);
+}
+
 /* Cards */
 
 .card {

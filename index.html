@@ -36,100 +36,112 @@
       </div>
     </section>
 
-    <section id="timer-section" class="card">
-      <h2>Rest timer</h2>
-      <div class="timer-display" id="timer-display">01:30</div>
+    <nav class="tab-nav" id="tab-nav" role="tablist" aria-label="Sections">
+      <button type="button" class="tab-btn is-active" role="tab" data-tab="log" aria-controls="log-section" aria-selected="true">Log Set</button>
+      <button type="button" class="tab-btn" role="tab" data-tab="timer" aria-controls="timer-section" aria-selected="false">Timer</button>
+      <button type="button" class="tab-btn" role="tab" data-tab="plan" aria-controls="assign-section" aria-selected="false">Plan</button>
+      <button type="button" class="tab-btn" role="tab" data-tab="templates" aria-controls="templates-section" aria-selected="false">Templates</button>
+      <button type="button" class="tab-btn" role="tab" data-tab="history" aria-controls="history-section" aria-selected="false">History</button>
+    </nav>
 
-      <div class="timer-presets">
-        <button type="button" class="preset-btn" data-seconds="60">60s</button>
-        <button type="button" class="preset-btn" data-seconds="90">90s</button>
-        <button type="button" class="preset-btn" data-seconds="120">120s</button>
-      </div>
+    <div class="tab-panels">
 
-      <div class="timer-controls">
-        <button type="button" id="timer-start" class="btn-primary">Start</button>
-        <button type="button" id="timer-pause" class="btn-secondary">Pause</button>
-        <button type="button" id="timer-reset" class="btn-text">Reset</button>
-      </div>
-    </section>
-
-    <section id="templates-section" class="card">
-      <h2>Templates</h2>
-      <div id="template-list">
-        <!-- filled in by script.js -->
-      </div>
-      <button type="button" id="new-template-btn" class="btn-secondary">+ New template</button>
-
-      <div id="template-form-wrapper" hidden>
-        <form id="template-form">
+      <section id="log-section" class="card tab-panel" data-tab-panel="log">
+        <h2>Log a set</h2>
+        <form id="log-form">
           <div class="field">
-            <label for="template-name">Template name</label>
-            <input type="text" id="template-name" required>
+            <label for="exercise-name">Exercise</label>
+            <input type="text" id="exercise-name" required>
           </div>
 
-          <div id="template-exercise-rows">
-            <!-- exercise rows added by script.js -->
+          <div class="field-row">
+            <div class="field">
+              <label for="sets">Sets</label>
+              <input type="number" id="sets" min="1" required>
+            </div>
+            <div class="field">
+              <label for="reps">Reps</label>
+              <input type="number" id="reps" min="1" required>
+            </div>
+            <div class="field">
+              <label for="weight">Weight (kg)</label>
+              <input type="number" id="weight" min="0" step="0.5">
+            </div>
           </div>
-          <button type="button" id="add-exercise-row" class="btn-secondary">+ Add exercise</button>
 
-          <div class="form-actions">
-            <button type="submit" class="btn-primary">Save template</button>
-            <button type="button" id="cancel-template" class="btn-text">Cancel</button>
-          </div>
+          <button type="submit" class="btn-primary">Save entry</button>
         </form>
-      </div>
-    </section>
+      </section>
 
-    <section id="assign-section" class="card">
-      <h2>Weekly plan</h2>
-      <div id="assign-grid">
-        <!-- filled in by script.js -->
-      </div>
-    </section>
+      <section id="timer-section" class="card tab-panel" data-tab-panel="timer" hidden>
+        <h2>Rest timer</h2>
+        <div class="timer-display" id="timer-display">01:30</div>
 
-    <section id="log-section" class="card">
-      <h2>Log a set</h2>
-      <form id="log-form">
-        <div class="field">
-          <label for="exercise-name">Exercise</label>
-          <input type="text" id="exercise-name" required>
+        <div class="timer-presets">
+          <button type="button" class="preset-btn" data-seconds="60">60s</button>
+          <button type="button" class="preset-btn" data-seconds="90">90s</button>
+          <button type="button" class="preset-btn" data-seconds="120">120s</button>
         </div>
 
-        <div class="field-row">
-          <div class="field">
-            <label for="sets">Sets</label>
-            <input type="number" id="sets" min="1" required>
-          </div>
-          <div class="field">
-            <label for="reps">Reps</label>
-            <input type="number" id="reps" min="1" required>
-          </div>
-          <div class="field">
-            <label for="weight">Weight (kg)</label>
-            <input type="number" id="weight" min="0" step="0.5">
-          </div>
+        <div class="timer-controls">
+          <button type="button" id="timer-start" class="btn-primary">Start</button>
+          <button type="button" id="timer-pause" class="btn-secondary">Pause</button>
+          <button type="button" id="timer-reset" class="btn-text">Reset</button>
         </div>
+      </section>
 
-        <button type="submit" class="btn-primary">Save entry</button>
-      </form>
-    </section>
+      <section id="assign-section" class="card tab-panel" data-tab-panel="plan" hidden>
+        <h2>Weekly plan</h2>
+        <div id="assign-grid">
+          <!-- filled in by script.js -->
+        </div>
+      </section>
 
-    <section id="history-section" class="card">
-      <div class="calendar-header">
-        <button id="prev-month" class="btn-icon" aria-label="Previous month">&lsaquo;</button>
-        <h2 id="calendar-month-label"></h2>
-        <button id="next-month" class="btn-icon" aria-label="Next month">&rsaquo;</button>
-      </div>
-      <div class="calendar-weekdays">
-        <span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span><span>Su</span>
-      </div>
-      <div class="calendar-grid" id="calendar-grid">
-        <!-- filled in by script.js -->
-      </div>
-      <div id="day-detail">
-        <!-- filled in by script.js -->
-      </div>
-    </section>
+      <section id="templates-section" class="card tab-panel" data-tab-panel="templates" hidden>
+        <h2>Templates</h2>
+        <div id="template-list">
+          <!-- filled in by script.js -->
+        </div>
+        <button type="button" id="new-template-btn" class="btn-secondary">+ New template</button>
+
+        <div id="template-form-wrapper" hidden>
+          <form id="template-form">
+            <div class="field">
+              <label for="template-name">Template name</label>
+              <input type="text" id="template-name" required>
+            </div>
+
+            <div id="template-exercise-rows">
+              <!-- exercise rows added by script.js -->
+            </div>
+            <button type="button" id="add-exercise-row" class="btn-secondary">+ Add exercise</button>
+
+            <div class="form-actions">
+              <button type="submit" class="btn-primary">Save template</button>
+              <button type="button" id="cancel-template" class="btn-text">Cancel</button>
+            </div>
+          </form>
+        </div>
+      </section>
+
+      <section id="history-section" class="card tab-panel" data-tab-panel="history" hidden>
+        <div class="calendar-header">
+          <button id="prev-month" class="btn-icon" aria-label="Previous month">&lsaquo;</button>
+          <h2 id="calendar-month-label"></h2>
+          <button id="next-month" class="btn-icon" aria-label="Next month">&rsaquo;</button>
+        </div>
+        <div class="calendar-weekdays">
+          <span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span><span>Su</span>
+        </div>
+        <div class="calendar-grid" id="calendar-grid">
+          <!-- filled in by script.js -->
+        </div>
+        <div id="day-detail">
+          <!-- filled in by script.js -->
+        </div>
+      </section>
+
+    </div>
 
   </main>
 
