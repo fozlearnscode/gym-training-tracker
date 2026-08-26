@@ -161,6 +161,22 @@ main {
   color: var(--color-muted);
 }
 
+/* Pilates uses a supplied PNG rather than an inline SVG path (see script.js for why).
+   A CSS mask lets a plain black-on-transparent image still pick up currentColor, so it
+   stays consistent with every other day-card icon instead of rendering flat black. */
+.day-card-icon-pilates {
+  display: inline-block;
+  background-color: currentColor;
+  -webkit-mask-image: url("assets/icons/pilates-reformer.png");
+  mask-image: url("assets/icons/pilates-reformer.png");
+  -webkit-mask-size: contain;
+  mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+}
+
 .day-card-session {
   font-size: 12px;
   font-weight: 500;

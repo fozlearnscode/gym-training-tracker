@@ -567,18 +567,25 @@ const REST_ICON_SVG = '<path fill="currentColor" d="M2 12A10 10 0 0 0 15 21.54A1
 // "meditation", Material Design Icons (Pictogrammers), Apache-2.0: https://pictogrammers.com/library/mdi/icon/meditation/
 const YOGA_ICON_SVG = '<path fill="currentColor" d="M12 4C13.11 4 14 4.89 14 6S13.11 8 12 8 10 7.11 10 6 10.9 4 12 4M21 16V14C18.76 14 16.84 13.04 15.4 11.32L14.06 9.72C13.68 9.26 13.12 9 12.53 9H11.5C10.89 9 10.33 9.26 9.95 9.72L8.61 11.32C7.16 13.04 5.24 14 3 14V16C5.77 16 8.19 14.83 10 12.75V15L6.12 16.55C5.45 16.82 5 17.5 5 18.21C5 19.2 5.8 20 6.79 20H9V19.5C9 18.12 10.12 17 11.5 17H14.5C14.78 17 15 17.22 15 17.5S14.78 18 14.5 18H11.5C10.67 18 10 18.67 10 19.5V20H17.21C18.2 20 19 19.2 19 18.21C19 17.5 18.55 16.82 17.88 16.55L14 15V12.75C15.81 14.83 18.23 16 21 16Z"/>';
 
+// Pilates gets a real reformer-bed image (a licensed icon, supplied directly rather than
+// sourced from an icon library — no set has one, and a hand-drawn attempt didn't hold up at
+// this small a size). It's recolored via a CSS mask instead of an inline SVG path, since a
+// mask lets a plain black-on-transparent PNG still follow currentColor like every other
+// day-card icon — see .day-card-icon-pilates in style.css.
+const PILATES_ICON_MARKUP = '<span class="day-card-icon day-card-icon-pilates" role="img" aria-label="Pilates"></span>';
+
 // Templates don't carry a structured "category" — just a free-text session name — so the
 // day-card icon is guessed from keywords in that name. Falls back to the generic strength
-// icon (already used for the Strength type toggle) for anything unmatched, e.g. "Pilates" or
-// "Core & mobility" — there's no dedicated Pilates pictogram in the icon set, and mat-based
-// resistance work is a reasonable enough fit for the generic strength icon anyway.
-function getSessionIconSvg(sessionName) {
+// icon (already used for the Strength type toggle) for anything unmatched, e.g.
+// "Core & mobility" — mat-based resistance work is a reasonable enough fit for it.
+function getDayIconMarkup(sessionName) {
   const name = sessionName.toLowerCase();
-  if (name.includes("leg")) return LEG_ICON_SVG;
-  if (name.includes("run")) return CARDIO_ICON_SVG;
-  if (name.includes("upper") || name.includes("arm")) return ARM_ICON_SVG;
-  if (name.includes("yoga")) return YOGA_ICON_SVG;
-  return STRENGTH_ICON_SVG;
+  if (name.includes("leg")) return `<svg class="day-card-icon" viewBox="0 0 24 24">${LEG_ICON_SVG}</svg>`;
+  if (name.includes("run")) return `<svg class="day-card-icon" viewBox="0 0 24 24">${CARDIO_ICON_SVG}</svg>`;
+  if (name.includes("upper") || name.includes("arm")) return `<svg class="day-card-icon" viewBox="0 0 24 24">${ARM_ICON_SVG}</svg>`;
+  if (name.includes("yoga")) return `<svg class="day-card-icon" viewBox="0 0 24 24">${YOGA_ICON_SVG}</svg>`;
+  if (name.includes("pilates")) return PILATES_ICON_MARKUP;
+  return `<svg class="day-card-icon" viewBox="0 0 24 24">${STRENGTH_ICON_SVG}</svg>`;
 }
 
 function setTypeToggleValue(toggleEl, type) {
@@ -961,8 +968,9 @@ function renderWeekTrail() {
     const body = document.createElement("div");
     body.className = "day-card-body";
 
-    const iconSvg = plan ? getSessionIconSvg(plan.sessionName) : REST_ICON_SVG;
-    body.innerHTML = `<svg class="day-card-icon" viewBox="0 0 24 24">${iconSvg}</svg>`;
+    body.innerHTML = plan
+      ? getDayIconMarkup(plan.sessionName)
+      : `<svg class="day-card-icon" viewBox="0 0 24 24">${REST_ICON_SVG}</svg>`;
 
     const sessionLabel = document.createElement("span");
     sessionLabel.className = "day-card-session";
