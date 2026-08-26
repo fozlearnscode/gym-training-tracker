@@ -27,6 +27,28 @@ function seedTemplates() {
         { name: "Plank", type: "strength", sets: 3, reps: 1 },
         { name: "Mountain climbers", type: "strength", sets: 3, reps: 20 }
       ]
+    },
+    {
+      id: generateId(),
+      name: "Pilates",
+      exercises: [
+        { name: "The Hundred", type: "strength", sets: 1, reps: 100 },
+        { name: "Roll-Up", type: "strength", sets: 3, reps: 8 },
+        { name: "Single-Leg Stretch", type: "strength", sets: 3, reps: 12 },
+        { name: "Leg Circles", type: "strength", sets: 2, reps: 10 }
+      ]
+    },
+    {
+      id: generateId(),
+      name: "Yoga",
+      // Held poses don't really have "reps" — following the same convention as Plank above,
+      // a hold is logged as reps: 1 so it still fits the sets/reps shape every exercise uses.
+      exercises: [
+        { name: "Sun Salutations", type: "strength", sets: 3, reps: 5 },
+        { name: "Downward Dog", type: "strength", sets: 3, reps: 1 },
+        { name: "Warrior II", type: "strength", sets: 2, reps: 1 },
+        { name: "Child's Pose", type: "strength", sets: 1, reps: 1 }
+      ]
     }
   ];
 }
@@ -42,7 +64,9 @@ function saveTemplates() {
 // This is seeded to match the templates above, but only on first run.
 let weeklyAssignments = JSON.parse(localStorage.getItem("weeklyAssignments")) || {
   Monday: templates[0].id,
+  Tuesday: templates[3].id,
   Wednesday: templates[1].id,
+  Thursday: templates[4].id,
   Friday: templates[2].id
 };
 
@@ -529,6 +553,34 @@ const STRENGTH_ICON_SVG = '<path fill="currentColor" d="M12 5C10.89 5 10 5.89 10
 // "run", Material Design Icons (Pictogrammers), Apache-2.0: https://pictogrammers.com/library/mdi/icon/run/
 const CARDIO_ICON_SVG = '<path fill="currentColor" d="M13.5,5.5C14.59,5.5 15.5,4.58 15.5,3.5C15.5,2.38 14.59,1.5 13.5,1.5C12.39,1.5 11.5,2.38 11.5,3.5C11.5,4.58 12.39,5.5 13.5,5.5M9.89,19.38L10.89,15L13,17V23H15V15.5L12.89,13.5L13.5,10.5C14.79,12 16.79,13 19,13V11C17.09,11 15.5,10 14.69,8.58L13.69,7C13.29,6.38 12.69,6 12,6C11.69,6 11.5,6.08 11.19,6.08L6,8.28V13H8V9.58L9.79,8.88L8.19,17L3.29,16L2.89,18L9.89,19.38Z"/>';
 
+// ---------- WEEK TRAIL DAY-CARD ICONS ----------
+
+// No icon set has an actual "person squatting" pictogram, so a kettlebell stands in for
+// leg day — the closest gym-equipment association available. Matched by keywords in the
+// session name below, since templates don't have a separate "category" field.
+// "kettlebell", Material Design Icons (Pictogrammers), Apache-2.0: https://pictogrammers.com/library/mdi/icon/kettlebell/
+const LEG_ICON_SVG = '<path fill="currentColor" d="M16.2 10.7L16.8 8.3C16.9 8 17.3 6.6 16.5 5.4C15.9 4.5 14.7 4 13 4H11C9.3 4 8.1 4.5 7.5 5.4C6.7 6.6 7.1 7.9 7.2 8.3L7.8 10.7C6.7 11.8 6 13.3 6 15C6 17.1 7.1 18.9 8.7 20H15.3C16.9 18.9 18 17.1 18 15C18 13.3 17.3 11.8 16.2 10.7M9.6 9.5L9.1 7.8V7.7C9.1 7.7 8.9 7 9.2 6.6C9.4 6.2 10 6 11 6H13C13.9 6 14.6 6.2 14.9 6.5C15.2 6.9 15 7.6 15 7.6L14.5 9.5C13.7 9.2 12.9 9 12 9C11.1 9 10.3 9.2 9.6 9.5Z"/>';
+// "arm-flex", Material Design Icons (Pictogrammers), Apache-2.0: https://pictogrammers.com/library/mdi/icon/arm-flex/
+const ARM_ICON_SVG = '<path fill="currentColor" d="M3 18.34C3 18.34 4 7.09 7 3L12 4L11 7.09H9V14.25H10C12 11.18 16.14 10.06 18.64 11.18C21.94 12.71 21.64 17.32 18.64 19.36C16.24 21 9 22.43 3 18.34Z"/>';
+// "moon-waning-crescent", Material Design Icons (Pictogrammers), Apache-2.0: https://pictogrammers.com/library/mdi/icon/moon-waning-crescent/
+const REST_ICON_SVG = '<path fill="currentColor" d="M2 12A10 10 0 0 0 15 21.54A10 10 0 0 1 15 2.46A10 10 0 0 0 2 12Z"/>';
+// "meditation", Material Design Icons (Pictogrammers), Apache-2.0: https://pictogrammers.com/library/mdi/icon/meditation/
+const YOGA_ICON_SVG = '<path fill="currentColor" d="M12 4C13.11 4 14 4.89 14 6S13.11 8 12 8 10 7.11 10 6 10.9 4 12 4M21 16V14C18.76 14 16.84 13.04 15.4 11.32L14.06 9.72C13.68 9.26 13.12 9 12.53 9H11.5C10.89 9 10.33 9.26 9.95 9.72L8.61 11.32C7.16 13.04 5.24 14 3 14V16C5.77 16 8.19 14.83 10 12.75V15L6.12 16.55C5.45 16.82 5 17.5 5 18.21C5 19.2 5.8 20 6.79 20H9V19.5C9 18.12 10.12 17 11.5 17H14.5C14.78 17 15 17.22 15 17.5S14.78 18 14.5 18H11.5C10.67 18 10 18.67 10 19.5V20H17.21C18.2 20 19 19.2 19 18.21C19 17.5 18.55 16.82 17.88 16.55L14 15V12.75C15.81 14.83 18.23 16 21 16Z"/>';
+
+// Templates don't carry a structured "category" — just a free-text session name — so the
+// day-card icon is guessed from keywords in that name. Falls back to the generic strength
+// icon (already used for the Strength type toggle) for anything unmatched, e.g. "Pilates" or
+// "Core & mobility" — there's no dedicated Pilates pictogram in the icon set, and mat-based
+// resistance work is a reasonable enough fit for the generic strength icon anyway.
+function getSessionIconSvg(sessionName) {
+  const name = sessionName.toLowerCase();
+  if (name.includes("leg")) return LEG_ICON_SVG;
+  if (name.includes("run")) return CARDIO_ICON_SVG;
+  if (name.includes("upper") || name.includes("arm")) return ARM_ICON_SVG;
+  if (name.includes("yoga")) return YOGA_ICON_SVG;
+  return STRENGTH_ICON_SVG;
+}
+
 function setTypeToggleValue(toggleEl, type) {
   toggleEl.dataset.value = type;
   toggleEl.querySelectorAll(".type-toggle-btn").forEach((btn) => {
@@ -908,6 +960,10 @@ function renderWeekTrail() {
 
     const body = document.createElement("div");
     body.className = "day-card-body";
+
+    const iconSvg = plan ? getSessionIconSvg(plan.sessionName) : REST_ICON_SVG;
+    body.innerHTML = `<svg class="day-card-icon" viewBox="0 0 24 24">${iconSvg}</svg>`;
+
     const sessionLabel = document.createElement("span");
     sessionLabel.className = "day-card-session";
     sessionLabel.textContent = plan ? plan.sessionName : "Rest day";

@@ -142,10 +142,23 @@ main {
 .day-card-body {
   flex: 1;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 4px;
   text-align: center;
   padding: 6px 5px;
+}
+
+.day-card-icon {
+  width: 18px;
+  height: 18px;
+  color: var(--color-ink);
+  flex-shrink: 0;
+}
+
+.day-card.is-rest .day-card-icon {
+  color: var(--color-muted);
 }
 
 .day-card-session {
