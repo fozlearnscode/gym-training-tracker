@@ -504,7 +504,7 @@ if (document.getElementById("timer-start")) {
 // ---------- TYPE TOGGLE (icon buttons shared by the log form and template rows) ----------
 
 const STRENGTH_ICON_SVG = '<rect x="1.5" y="8" width="3" height="8" rx="1.3" fill="currentColor"/><rect x="19.5" y="8" width="3" height="8" rx="1.3" fill="currentColor"/><rect x="5.5" y="9.5" width="2.5" height="5" rx="1" fill="currentColor"/><rect x="16" y="9.5" width="2.5" height="5" rx="1" fill="currentColor"/><rect x="7.5" y="10.8" width="9" height="2.4" rx="1.2" fill="currentColor"/>';
-const CARDIO_ICON_SVG = '<path class="rt-limb" d="M15 6.2L11.3 12.6"/><path class="rt-limb" d="M11.3 12.6L15.2 10.8L17.3 15.8"/><path class="rt-limb" d="M11.3 12.6L7.2 13.6L4.7 18.3"/><path class="rt-limb" d="M13.4 7.6L17.6 6.3L20.2 8.8"/><path class="rt-limb" d="M13.4 7.6L9.3 9.1L6.8 7"/><circle class="rt-head" cx="16.3" cy="4" r="2"/><path class="rt-head" d="M14.7 2.7c-2.2-0.9-4 0-4.2 2 1.3-0.7 2.7-1.3 4.2-2z"/>';
+const CARDIO_ICON_SVG = '<path class="rt-limb" d="M15 6.2L11.3 12.6"/><path class="rt-limb" d="M11.3 12.6L15.2 10.8L17.3 15.8"/><path class="rt-limb" d="M11.3 12.6L7.2 13.6L4.7 18.3"/><path class="rt-limb" d="M13.4 7.6L17.6 6.3L20.2 8.8"/><path class="rt-limb" d="M13.4 7.6L9.3 9.1L6.8 7"/><circle class="rt-head" cx="16.3" cy="4" r="2"/><path class="rt-head" d="M15.3 2.8C13.5 0.5 10.8 -1 9.2 0.3C10.8 1.8 12.8 2.6 14.2 3.6Z"/>';
 
 function setTypeToggleValue(toggleEl, type) {
   toggleEl.dataset.value = type;

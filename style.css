@@ -717,12 +717,12 @@ input:focus-visible {
   flex-shrink: 0;
 }
 
-/* Runner icon: chunky rounded strokes for the limbs, filled head + ponytail — a bolder,
+/* Runner icon: chunky rounded strokes for the limbs, filled head + swept-back hair — a bolder,
    more pictogram-like weight than the thin-line icons used elsewhere in the app. */
 .rt-limb {
   fill: none;
   stroke: currentColor;
-  stroke-width: 2.8;
+  stroke-width: 2.9;
   stroke-linecap: round;
   stroke-linejoin: round;
 }
