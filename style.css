@@ -941,6 +941,51 @@ input:focus-visible {
   color: var(--color-stone);
 }
 
+/* Saved videos (Phase 2) */
+
+.form-error {
+  color: var(--color-coral);
+  font-size: 13px;
+  margin: -8px 0 14px;
+}
+
+.video-card {
+  padding: 16px 0;
+  border-bottom: 1px solid var(--color-line);
+}
+
+.video-card:last-child {
+  border-bottom: none;
+}
+
+.video-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 4px;
+}
+
+.video-card-title {
+  font-weight: 500;
+  flex: 1;
+}
+
+.video-card-meta {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--color-stone);
+  margin-bottom: 10px;
+}
+
+/* TikTok's own embed script fills this blockquote in and sizes it responsively —
+   we just make sure it never forces the card wider than its container. */
+.video-card .tiktok-embed {
+  max-width: 100% !important;
+  margin: 0 auto;
+}
+
 @media (prefers-reduced-motion: no-preference) {
   .btn-primary {
     transition: background 0.15s ease;

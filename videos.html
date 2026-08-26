@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <title>Templates — Gym & Training Tracker</title>
+  <title>Saved Videos — Gym & Training Tracker</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,400;0,600;1,500&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
@@ -18,30 +18,24 @@
 
   <main>
 
-    <section id="templates-section" class="card">
-      <h2>Templates</h2>
-      <div id="template-list">
+    <section id="add-video-section" class="card">
+      <h2>Save a workout video</h2>
+      <form id="add-video-form">
+        <div class="field">
+          <label for="video-url">TikTok link</label>
+          <input type="url" id="video-url" placeholder="https://www.tiktok.com/@user/video/..." required>
+        </div>
+
+        <p class="form-error" id="video-error" hidden></p>
+
+        <button type="submit" class="btn-primary" id="add-video-btn">Save video</button>
+      </form>
+    </section>
+
+    <section id="videos-section" class="card">
+      <h2>Saved videos</h2>
+      <div id="video-list">
         <!-- filled in by script.js -->
-      </div>
-      <button type="button" id="new-template-btn" class="btn-secondary">+ New template</button>
-
-      <div id="template-form-wrapper" hidden>
-        <form id="template-form">
-          <div class="field">
-            <label for="template-name">Template name</label>
-            <input type="text" id="template-name" required>
-          </div>
-
-          <div id="template-exercise-rows">
-            <!-- exercise rows added by script.js -->
-          </div>
-          <button type="button" id="add-exercise-row" class="btn-secondary">+ Add exercise</button>
-
-          <div class="form-actions">
-            <button type="submit" class="btn-primary">Save template</button>
-            <button type="button" id="cancel-template" class="btn-text">Cancel</button>
-          </div>
-        </form>
       </div>
     </section>
 
@@ -73,7 +67,7 @@
         </span>
         <span class="tab-label">Plan</span>
       </a>
-      <a href="templates.html" class="tab-btn is-active" aria-current="page">
+      <a href="templates.html" class="tab-btn">
         <span class="tab-icon-wrap">
           <svg class="tab-icon" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="4" rx="1"/><rect x="4" y="10" width="16" height="4" rx="1"/><rect x="4" y="16" width="16" height="4" rx="1"/></svg>
         </span>
@@ -85,7 +79,7 @@
         </span>
         <span class="tab-label">History</span>
       </a>
-      <a href="videos.html" class="tab-btn">
+      <a href="videos.html" class="tab-btn is-active" aria-current="page">
         <span class="tab-icon-wrap">
           <svg class="tab-icon" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M10 9l5 3-5 3z"/></svg>
         </span>

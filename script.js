@@ -1124,6 +1124,136 @@ if (document.getElementById("log-form")) {
   });
 }
 
+// ---------- SAVED VIDEOS (Phase 2: TikTok workout videos) ----------
+
+// Same load-from-localStorage-or-start-empty pattern as trainingLog above.
+let savedVideos = JSON.parse(localStorage.getItem("savedVideos")) || [];
+
+function saveSavedVideos() {
+  localStorage.setItem("savedVideos", JSON.stringify(savedVideos));
+}
+
+// Asks TikTok's public oEmbed endpoint for details about a video URL: title, creator, and a
+// numeric video ID we can use to build an embed. This endpoint needs no API key or login, and
+// (unlike most of TikTok's site) it explicitly allows cross-origin requests — that's what lets
+// us call it straight from the browser with no backend server involved.
+async function fetchTikTokOEmbed(videoUrl) {
+  const endpoint = `https://www.tiktok.com/oembed?url=${encodeURIComponent(videoUrl)}`;
+  const response = await fetch(endpoint);
+
+  if (!response.ok) {
+    // TikTok returns an error status for URLs that aren't real, public video links.
+    throw new Error("Not a valid TikTok video link");
+  }
+
+  return response.json();
+}
+
+// TikTok's embed script (embed.js) is what actually turns a <blockquote class="tiktok-embed">
+// into a playable video. We only want to load that script once per page, no matter how many
+// videos get saved, so we tag it with an id and check for that id before adding another.
+function ensureTikTokEmbedScript() {
+  if (document.getElementById("tiktok-embed-script")) return;
+
+  const script = document.createElement("script");
+  script.id = "tiktok-embed-script";
+  script.src = "https://www.tiktok.com/embed.js";
+  script.async = true;
+  document.body.appendChild(script);
+}
+
+// embed.js only scans the page for blockquotes to convert ONE TIME, right when it finishes
+// loading. If we add more saved-video blockquotes after that (e.g. the user saves a second
+// video), it won't notice them on its own — we have to explicitly ask it to look again, which
+// is what its reload() function is for. We guard with `typeof` checks because reload() only
+// exists once embed.js has actually finished loading.
+function refreshTikTokEmbeds() {
+  if (window.tiktokEmbed && typeof window.tiktokEmbed.reload === "function") {
+    window.tiktokEmbed.reload();
+  }
+}
+
+function renderSavedVideos() {
+  const container = document.getElementById("video-list");
+  if (!container) return; // this page doesn't show saved videos
+
+  container.innerHTML = "";
+
+  if (savedVideos.length === 0) {
+    container.innerHTML = `<p class="rest-day-message">No videos saved yet.</p>`;
+    return;
+  }
+
+  savedVideos.forEach((video) => {
+    const card = document.createElement("div");
+    card.className = "video-card";
+    card.innerHTML = `
+      <div class="video-card-header">
+        <span class="video-card-title">${video.title}</span>
+        <button type="button" class="btn-small delete-video-btn">Remove</button>
+      </div>
+      <span class="video-card-meta">by ${video.authorName}</span>
+      <blockquote class="tiktok-embed" cite="${video.url}" data-video-id="${video.videoId}" style="max-width: 605px; min-width: 325px;">
+        <section></section>
+      </blockquote>
+    `;
+
+    card.querySelector(".delete-video-btn").addEventListener("click", () => {
+      savedVideos = savedVideos.filter((v) => v.id !== video.id);
+      saveSavedVideos();
+      renderSavedVideos();
+    });
+
+    container.appendChild(card);
+  });
+
+  // The blockquotes above are just placeholders until TikTok's script processes them.
+  ensureTikTokEmbedScript();
+  refreshTikTokEmbeds();
+}
+
+if (document.getElementById("add-video-form")) {
+  document.getElementById("add-video-form").addEventListener("submit", async (event) => {
+    event.preventDefault();
+
+    const urlInput = document.getElementById("video-url");
+    const errorEl = document.getElementById("video-error");
+    const submitBtn = document.getElementById("add-video-btn");
+
+    errorEl.hidden = true;
+    submitBtn.disabled = true;
+    submitBtn.textContent = "Saving...";
+
+    try {
+      const data = await fetchTikTokOEmbed(urlInput.value.trim());
+
+      // We deliberately store only the small pieces of data we need to render our own card
+      // and rebuild the embed later — not the raw HTML TikTok returns. That HTML embeds a
+      // thumbnail URL that expires after a while, so storing it would mean saved videos start
+      // showing broken images over time. Rebuilding the blockquote fresh from videoId every
+      // time avoids that problem entirely.
+      savedVideos.push({
+        id: generateId(),
+        videoId: data.embed_product_id,
+        url: urlInput.value.trim(),
+        title: data.title,
+        authorName: data.author_name,
+        savedAt: toDateString(new Date())
+      });
+
+      saveSavedVideos();
+      renderSavedVideos();
+      event.target.reset();
+    } catch (error) {
+      errorEl.textContent = "Couldn't save that video — check the link and try again.";
+      errorEl.hidden = false;
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = "Save video";
+    }
+  });
+}
+
 // ---------- BOTTOM NAV ----------
 
 // A small dot on the Timer link so a rest timer counting down on another page isn't
@@ -1155,4 +1285,5 @@ renderStats();
 renderTodayPlan();
 renderCalendar();
 renderDayDetail();
+renderSavedVideos();
 updateTimerNavDot();
