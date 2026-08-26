@@ -1098,7 +1098,7 @@ function renderCountdown() {
   const today = new Date();
   const msPerDay = 1000 * 60 * 60 * 24;
   const daysLeft = Math.ceil((raceDate - today) / msPerDay);
-  countdownEl.textContent = `${daysLeft} days until Steph's 10km at Melbourne Marathon`;
+  countdownEl.textContent = `${daysLeft} days until Raggy's run at the Melbourne Marathon`;
 }
 
 // Greets Steph by name, varying the wording by the time of day — a nice personal touch that's
