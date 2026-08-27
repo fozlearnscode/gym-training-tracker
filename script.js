@@ -126,6 +126,23 @@ const PB_MESSAGES = {
   volume: "New PB — biggest volume yet!"
 };
 
+// ---------- CARDIO PACE ----------
+
+// Pace isn't a separate thing to log — it's just distance and duration divided, so it's
+// computed on the fly wherever a cardio entry is already shown rather than stored anywhere.
+function formatPace(distanceKm, durationMin) {
+  if (!distanceKm || !durationMin || distanceKm <= 0 || durationMin <= 0) return null;
+
+  const paceMinPerKm = durationMin / distanceKm;
+  let minutes = Math.floor(paceMinPerKm);
+  let seconds = Math.round((paceMinPerKm - minutes) * 60);
+  if (seconds === 60) {
+    minutes += 1;
+    seconds = 0;
+  }
+  return `${minutes}:${String(seconds).padStart(2, "0")}/km`;
+}
+
 // ---------- DATE HELPERS ----------
 
 function toDateString(date) {
@@ -219,6 +236,96 @@ function calculateLast30DayStats() {
   return { totalSets, totalDistance, sessionsCompleted };
 }
 
+// ---------- BADGES ----------
+
+// Badges need to feel permanent — once earned, always earned — unlike the stats above,
+// which deliberately reflect only the current state (a "30-day streak" badge that vanished
+// the moment a streak broke would defeat the point of a badge). So every criterion here is
+// phrased as an all-time, cumulative total rather than a current one: total sets ever logged
+// only grows, and "longest streak ever" (below) remembers past runs instead of just the
+// active one — both stay true forever once reached, with nothing extra needing to be stored.
+
+function calculateAllTimeTotalSets() {
+  return trainingLog.reduce((sum, entry) => sum + (entry.sets || 0), 0);
+}
+
+function calculateAllTimeTotalDistance() {
+  return trainingLog.reduce((sum, entry) => sum + (entry.distance || 0), 0);
+}
+
+// Same day-by-day completion check as calculateStreak() above, but instead of stopping at
+// the first broken day, it keeps walking the full logged history and remembers the longest
+// run it ever found — so a streak that broke months ago still counts for a badge today.
+function calculateLongestStreakEver() {
+  if (trainingLog.length === 0) return 0;
+
+  const earliestDate = trainingLog.reduce((min, e) => (e.date < min ? e.date : min), trainingLog[0].date);
+  const todayString = toDateString(new Date());
+  const cursor = new Date();
+  let currentRun = 0;
+  let longestRun = 0;
+
+  for (let i = 0; i < 730; i++) { // a two-year cap — generous, but not unbounded
+    const dateString = toDateString(cursor);
+    if (dateString < earliestDate) break; // nothing further back to check
+
+    const dayName = dayNames[cursor.getDay()];
+    const plan = findPlanForDay(dayName);
+
+    if (plan) {
+      if (isDayFullyLogged(dateString, plan)) {
+        currentRun++;
+        longestRun = Math.max(longestRun, currentRun);
+      } else if (dateString !== todayString) {
+        currentRun = 0;
+      }
+    }
+
+    cursor.setDate(cursor.getDate() - 1);
+  }
+
+  return longestRun;
+}
+
+// The exact exercise names from the Pilates and Yoga seed templates (see seedTemplates()).
+// trainingLog entries don't record which session/template they came from — only the exercise
+// name — so this is a best-effort match rather than a guarantee: renaming these exercises, or
+// building a custom Pilates/Yoga template with different move names, means this specific badge
+// just won't trigger for them. Everything else here is unaffected either way.
+const PILATES_YOGA_MOVE_NAMES = [
+  "The Hundred", "Roll-Up", "Single-Leg Stretch", "Leg Circles",
+  "Sun Salutations", "Downward Dog", "Warrior II", "Child's Pose"
+];
+
+const BADGE_DEFINITIONS = [
+  { icon: "🎉", name: "First Session", isEarned: () => trainingLog.length > 0 },
+  { icon: "🏃", name: "On the Move", isEarned: () => trainingLog.some((e) => e.type === "cardio") },
+  {
+    icon: "🧘",
+    name: "Mind & Body",
+    isEarned: () => trainingLog.some((e) => PILATES_YOGA_MOVE_NAMES.includes(e.exercise))
+  },
+  { icon: "💪", name: "50 Sets", isEarned: () => calculateAllTimeTotalSets() >= 50 },
+  { icon: "🏆", name: "200 Sets", isEarned: () => calculateAllTimeTotalSets() >= 200 },
+  { icon: "🔥", name: "7-Day Streak", isEarned: () => calculateLongestStreakEver() >= 7 },
+  { icon: "🌟", name: "30-Day Streak", isEarned: () => calculateLongestStreakEver() >= 30 }
+];
+
+function renderBadgeShelf() {
+  const container = document.getElementById("badge-shelf");
+  if (!container) return; // this page doesn't show badges
+
+  container.innerHTML = BADGE_DEFINITIONS.map((badge) => {
+    const earned = badge.isEarned();
+    return `
+      <div class="badge-tile ${earned ? "is-earned" : ""}" title="${earned ? "Earned!" : "Not earned yet"}">
+        <span class="badge-icon">${badge.icon}</span>
+        <span class="badge-name">${badge.name}</span>
+      </div>
+    `;
+  }).join("");
+}
+
 // Below the first milestone, the streak stat is just a plain number like any other stat.
 // At 3, 7, 14, and 30+ days it becomes a full-width encouraging message instead — checked
 // highest-first so e.g. a 40-day streak matches the 30+ tier, not the 3-day one.
@@ -265,6 +372,8 @@ function renderStats() {
       <span class="stat-label">km run (30d)</span>
     </div>
   `;
+
+  renderBadgeShelf();
 }
 
 // ---------- REST TIMER ----------
@@ -1207,11 +1316,12 @@ function buildTodayPlanItem(exercise, todayString, isBodyweightSession) {
 
   const info = document.createElement("div");
   info.className = "exercise-info";
-  const metaText = isCardio ? `${exercise.distance}km target` : `${exercise.sets} x ${exercise.reps}`;
+  const targetMetaText = isCardio ? `${exercise.distance}km target` : `${exercise.sets} x ${exercise.reps}`;
   info.innerHTML = `
     <span class="exercise-name">${exercise.name}</span>
-    <span class="exercise-meta">${metaText}</span>
+    <span class="exercise-meta">${targetMetaText}</span>
   `;
+  const metaEl = info.querySelector(".exercise-meta");
 
   const inputsWrapper = document.createElement("div");
   inputsWrapper.className = "exercise-inputs";
@@ -1233,6 +1343,16 @@ function buildTodayPlanItem(exercise, todayString, isBodyweightSession) {
     secondInput.placeholder = "min";
     secondInput.min = "0";
     secondInput.value = existingEntry ? existingEntry.duration ?? "" : "";
+
+    // Pace isn't logged separately — it's shown live as distance/duration are typed, right
+    // in the same meta text that otherwise just shows the planned target.
+    function updatePaceMeta() {
+      const pace = formatPace(Number(firstInput.value), Number(secondInput.value));
+      metaEl.textContent = pace ? `${targetMetaText} · ${pace}` : targetMetaText;
+    }
+    firstInput.addEventListener("input", updatePaceMeta);
+    secondInput.addEventListener("input", updatePaceMeta);
+    updatePaceMeta(); // in case this exercise was already logged before the page loaded
 
     inputsWrapper.appendChild(firstInput);
     inputsWrapper.appendChild(secondInput);
@@ -1478,7 +1598,9 @@ function renderDayDetail() {
   const itemsHtml = entries
     .map((entry) => {
       if (entry.type === "cardio") {
-        return `<li><span>${entry.exercise}</span><span class="stat">${entry.distance}km · ${entry.duration}min</span></li>`;
+        const pace = formatPace(entry.distance, entry.duration);
+        const paceText = pace ? ` · ${pace}` : "";
+        return `<li><span>${entry.exercise}</span><span class="stat">${entry.distance}km · ${entry.duration}min${paceText}</span></li>`;
       }
       const weightText = entry.weight ? `@ ${entry.weight}kg` : "";
       return `<li><span>${entry.exercise}</span><span class="stat">${entry.sets}x${entry.reps} ${weightText}</span></li>`;
@@ -1664,10 +1786,24 @@ function toggleLogFormFields() {
   const showCardio = document.getElementById("log-type").dataset.value === "cardio";
   document.getElementById("strength-fields").hidden = showCardio;
   document.getElementById("cardio-fields").hidden = !showCardio;
+  if (!showCardio) document.getElementById("log-pace-preview").hidden = true;
+}
+
+// Pace isn't logged separately — see formatPace — so this just previews it live as distance
+// and duration are typed, the same way Today's Plan's cardio row does.
+function updateLogPacePreview() {
+  const distance = Number(document.getElementById("distance").value);
+  const duration = Number(document.getElementById("duration").value);
+  const pace = formatPace(distance, duration);
+  const previewEl = document.getElementById("log-pace-preview");
+  previewEl.textContent = pace ? `Pace: ${pace}` : "";
+  previewEl.hidden = !pace;
 }
 
 if (document.getElementById("log-form")) {
   setupTypeToggle(document.getElementById("log-type"), toggleLogFormFields);
+  document.getElementById("distance").addEventListener("input", updateLogPacePreview);
+  document.getElementById("duration").addEventListener("input", updateLogPacePreview);
 
   document.getElementById("log-form").addEventListener("submit", (event) => {
     event.preventDefault(); // stops the page from reloading, which forms do by default
@@ -1700,6 +1836,7 @@ if (document.getElementById("log-form")) {
     // reset() only touches native form controls — the type toggle is a custom div, so reset it by hand.
     setTypeToggleValue(document.getElementById("log-type"), "strength");
     toggleLogFormFields();
+    updateLogPacePreview(); // the distance/duration inputs just got cleared by reset()
 
     const pbMessageEl = document.getElementById("log-pb-message");
     if (pbMetric) {

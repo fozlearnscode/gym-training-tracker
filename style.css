@@ -637,6 +637,49 @@ select:focus-visible {
   color: var(--color-mocha);
 }
 
+/* Badge shelf */
+
+.badge-shelf {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.badge-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  width: 76px;
+  padding: 10px 4px;
+  border-radius: 10px;
+  border: 1px solid var(--color-hairline);
+  text-align: center;
+  /* Unearned by default: quiet and grayscale, so an earned badge reads as a clear step up
+     rather than everything looking equally "done." */
+  opacity: 0.5;
+  filter: grayscale(1);
+}
+
+.badge-tile.is-earned {
+  border-color: var(--color-blush);
+  background: var(--color-blush);
+  opacity: 1;
+  filter: none;
+}
+
+.badge-icon {
+  font-size: 22px;
+  line-height: 1;
+}
+
+.badge-name {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--color-ink);
+  line-height: 1.25;
+}
+
 /* Rest timer */
 
 /* The scrollable minute/second wheels, styled after the iOS Clock app's timer picker. */
