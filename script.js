@@ -1010,6 +1010,11 @@ function renderTodayPlan() {
   const list = document.createElement("ul");
   list.className = "exercise-list";
 
+  // Pilates/Yoga are bodyweight sessions — tracked by sets/reps (already shown in the meta
+  // text below) rather than a weight lifted, so skip the weight input for these specifically
+  // rather than showing an input that never applies.
+  const isBodyweightSession = /pilates|yoga/i.test(plan.sessionName);
+
   plan.exercises.forEach((exercise) => {
     const existingEntry = trainingLog.find(
       (entry) => entry.date === todayString && entry.exercise === exercise.name
@@ -1055,7 +1060,7 @@ function renderTodayPlan() {
 
       inputsWrapper.appendChild(firstInput);
       inputsWrapper.appendChild(secondInput);
-    } else {
+    } else if (!isBodyweightSession) {
       firstInput = document.createElement("input");
       firstInput.type = "number";
       firstInput.className = "weight-input-small";
@@ -1083,7 +1088,8 @@ function renderTodayPlan() {
         type: "strength",
         sets: exercise.sets,
         reps: exercise.reps,
-        weight: firstInput.value ? Number(firstInput.value) : null
+        // No weight input at all for a bodyweight session (firstInput is undefined there).
+        weight: firstInput && firstInput.value ? Number(firstInput.value) : null
       };
     }
 
@@ -1121,7 +1127,7 @@ function renderTodayPlan() {
       renderDayDetail();
     }
 
-    firstInput.addEventListener("change", handleInputChange);
+    if (firstInput) firstInput.addEventListener("change", handleInputChange);
     if (secondInput) secondInput.addEventListener("change", handleInputChange);
 
     item.appendChild(checkbox);
