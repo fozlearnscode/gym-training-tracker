@@ -444,6 +444,46 @@ main {
   color: var(--color-muted);
 }
 
+.pb-badge {
+  display: inline-block;
+  background: var(--color-blush);
+  color: var(--color-ink);
+  font-family: var(--font-body);
+  font-size: 10px;
+  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: 20px;
+  margin-left: 8px;
+  vertical-align: middle;
+}
+
+/* Supersets: a few exercises meant back to back, bracketed together under one label rather
+   than reading as unrelated rows in the list. */
+.superset-group {
+  border-left: 3px solid var(--color-mocha);
+  padding-left: 12px;
+  margin: 4px 0;
+}
+
+.superset-label {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-mocha);
+  margin-bottom: 6px;
+}
+
+.superset-list {
+  gap: 0;
+}
+
+.superset-list .exercise-item {
+  padding: 8px 0;
+}
+
 .weight-input-small {
   width: 64px;
   font-family: var(--font-mono);
@@ -468,6 +508,10 @@ main {
 }
 
 /* Form */
+
+.field[hidden] {
+  display: none;
+}
 
 .field {
   display: flex;
@@ -507,6 +551,22 @@ input {
 }
 
 input:focus-visible {
+  outline: 2px solid var(--color-mocha);
+  outline-offset: 1px;
+}
+
+select {
+  font-family: var(--font-body);
+  font-size: 15px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--color-hairline);
+  background: var(--color-bg);
+  color: var(--color-ink);
+  width: 100%;
+}
+
+select:focus-visible {
   outline: 2px solid var(--color-mocha);
   outline-offset: 1px;
 }
@@ -929,6 +989,37 @@ input:focus-visible {
   color: var(--color-mocha);
 }
 
+.superset-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  font-size: 13px;
+  color: var(--color-muted);
+  cursor: pointer;
+}
+
+/* Same mocha-outline / blush-fill circle language as .exercise-checkbox, just smaller —
+   this is a plan-time "group these" toggle, not a completion mark, so it stays visually
+   distinct in size while following the same checked/unchecked pattern. */
+.row-superset-checkbox {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  border-radius: 50%;
+  border: 2px solid var(--color-mocha);
+  background: var(--color-card);
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+.row-superset-checkbox:checked {
+  background: var(--color-blush);
+  border-color: var(--color-blush);
+}
+
 .form-actions {
   display: flex;
   align-items: center;
@@ -1097,12 +1188,38 @@ input:focus-visible {
   color: var(--color-muted);
 }
 
+/* Progress chart */
+
+#progress-metric-toggle {
+  margin: 4px 0 16px;
+}
+
+.progress-canvas {
+  display: block;
+  width: 100%;
+  height: 160px;
+}
+
+.progress-canvas[hidden] {
+  display: none;
+}
+
 /* Saved videos (Phase 2) */
 
 .form-error {
   color: var(--color-mocha);
   font-size: 13px;
   margin: -8px 0 14px;
+}
+
+.form-success {
+  color: var(--color-ink);
+  background: var(--color-blush);
+  font-size: 13px;
+  font-weight: 500;
+  padding: 8px 12px;
+  border-radius: 8px;
+  margin: -4px 0 14px;
 }
 
 .video-card {

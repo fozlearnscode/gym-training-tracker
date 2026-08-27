@@ -35,6 +35,20 @@
       </div>
     </section>
 
+    <section id="progress-section" class="card">
+      <h2>Progress</h2>
+      <div class="field">
+        <label for="progress-exercise-select">Exercise</label>
+        <select id="progress-exercise-select"></select>
+      </div>
+      <div class="type-toggle" id="progress-metric-toggle" data-value="weight">
+        <button type="button" class="type-toggle-btn is-active" data-type="weight">Weight</button>
+        <button type="button" class="type-toggle-btn" data-type="volume">Volume</button>
+      </div>
+      <canvas id="progress-canvas" class="progress-canvas" height="160"></canvas>
+      <p class="rest-day-message" id="progress-empty-message" hidden></p>
+    </section>
+
   </main>
 
   <div class="tab-bar-wrap">

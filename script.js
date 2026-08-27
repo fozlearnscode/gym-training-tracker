@@ -94,6 +94,38 @@ function saveLog() {
   localStorage.setItem("trainingLog", JSON.stringify(trainingLog));
 }
 
+// ---------- PERSONAL BESTS ----------
+
+// Checks a just-logged strength entry against every PRIOR entry for the same exercise (the
+// entry itself must already be pushed into trainingLog before calling this, so pass it in to
+// exclude it from its own comparison). Returns which metric was beaten ("weight", "reps", or
+// "volume"), in that priority order, or null if nothing was beaten — including when this is
+// the very first time the exercise has been logged, since there's nothing yet to beat.
+function checkForNewPB(entry) {
+  if (entry.type !== "strength" || entry.weight == null) return null;
+
+  const priorEntries = trainingLog.filter(
+    (e) => e !== entry && e.type === "strength" && e.exercise === entry.exercise && e.weight != null
+  );
+  if (priorEntries.length === 0) return null;
+
+  const bestWeight = Math.max(...priorEntries.map((e) => e.weight));
+  const bestReps = Math.max(...priorEntries.map((e) => e.reps));
+  const bestVolume = Math.max(...priorEntries.map((e) => e.sets * e.reps * e.weight));
+  const newVolume = entry.sets * entry.reps * entry.weight;
+
+  if (entry.weight > bestWeight) return "weight";
+  if (entry.reps > bestReps) return "reps";
+  if (newVolume > bestVolume) return "volume";
+  return null;
+}
+
+const PB_MESSAGES = {
+  weight: "New PB — heaviest weight yet!",
+  reps: "New PB — most reps yet!",
+  volume: "New PB — biggest volume yet!"
+};
+
 // ---------- DATE HELPERS ----------
 
 function toDateString(date) {
@@ -248,6 +280,40 @@ let timerInterval = null;
 let timerRunning = false;
 let timerActive = false;   // true from Start until Cancel — switches the picker for the countdown
 
+// Remembers the last rest duration used for each exercise by name (e.g. Squats -> 90), so
+// the picker can default to it next time instead of starting from a blank slate every visit.
+let exerciseRestPreferences = JSON.parse(localStorage.getItem("exerciseRestPreferences")) || {};
+
+function saveExerciseRestPreferences() {
+  localStorage.setItem("exerciseRestPreferences", JSON.stringify(exerciseRestPreferences));
+}
+
+// Every exercise name that appears in any template, regardless of type — pulled fresh each
+// time the Timer page loads rather than stored separately, so it can't drift out of sync
+// with whatever templates currently exist.
+function getAllTemplateExerciseNames() {
+  const names = new Set();
+  templates.forEach((template) => {
+    template.exercises.forEach((exercise) => names.add(exercise.name));
+  });
+  return Array.from(names).sort();
+}
+
+function renderTimerExerciseSelect() {
+  const select = document.getElementById("timer-exercise-select");
+  if (!select) return; // this page doesn't have the timer
+
+  const names = getAllTemplateExerciseNames();
+  const optionsHtml = names.map((name) => `<option value="${name}">${name}</option>`).join("");
+  select.innerHTML = `<option value="">— General rest —</option>${optionsHtml}`;
+
+  select.addEventListener("change", () => {
+    if (timerActive) return; // don't yank the picker out from under a countdown already running
+    const remembered = exerciseRestPreferences[select.value];
+    if (remembered) selectPreset(remembered);
+  });
+}
+
 function formatTime(totalSeconds) {
   const safeSeconds = Math.max(0, totalSeconds);
   const minutes = Math.floor(safeSeconds / 60);
@@ -367,6 +433,7 @@ function syncPresetHighlight() {
 function initTimerPicker() {
   if (!minuteWheel) return; // this page doesn't have the timer
 
+  renderTimerExerciseSelect();
   buildWheel(minuteWheel, WHEEL_MAX_MINUTES);
   buildWheel(secondWheel, WHEEL_MAX_SECONDS);
   setupWheelScrolling(minuteWheel, WHEEL_MAX_MINUTES);
@@ -418,6 +485,7 @@ function selectPreset(seconds) {
 function showPicker() {
   document.getElementById("timer-picker").hidden = false;
   document.getElementById("timer-presets").hidden = false;
+  document.getElementById("timer-exercise-select").parentElement.hidden = false;
   document.getElementById("timer-display").hidden = true;
   document.getElementById("timer-start").hidden = false;
   document.getElementById("timer-pause").hidden = true;
@@ -427,6 +495,7 @@ function showPicker() {
 function showCountdown() {
   document.getElementById("timer-picker").hidden = true;
   document.getElementById("timer-presets").hidden = true;
+  document.getElementById("timer-exercise-select").parentElement.hidden = true;
   document.getElementById("timer-display").hidden = false;
   document.getElementById("timer-start").hidden = true;
   document.getElementById("timer-pause").hidden = false;
@@ -536,6 +605,12 @@ if (document.getElementById("timer-start")) {
   document.getElementById("timer-start").addEventListener("click", () => {
     const total = getPickerTotalSeconds();
     if (total <= 0) return; // nothing to count down from
+
+    const exerciseName = document.getElementById("timer-exercise-select").value;
+    if (exerciseName) {
+      exerciseRestPreferences[exerciseName] = total;
+      saveExerciseRestPreferences();
+    }
 
     timerDuration = total;
     timerRemaining = total;
@@ -657,6 +732,7 @@ function renderTemplateList() {
 function addExerciseRow(prefill) {
   const rowsContainer = document.getElementById("template-exercise-rows");
   const isCardio = prefill && prefill.type === "cardio";
+  const isLinked = Boolean(prefill && prefill.linkedToNext);
 
   const row = document.createElement("div");
   row.className = "exercise-row-group";
@@ -681,6 +757,10 @@ function addExerciseRow(prefill) {
       <input type="number" class="row-distance" placeholder="Distance (km)" min="0" step="0.1" value="${isCardio ? prefill.distance : ""}">
       <input type="number" class="row-duration" placeholder="Duration (min)" min="0" value="${isCardio ? prefill.duration : ""}">
     </div>
+    <label class="superset-toggle">
+      <input type="checkbox" class="row-superset-checkbox" ${isLinked ? "checked" : ""}>
+      <span>Superset with next exercise</span>
+    </label>
   `;
 
   const typeToggle = row.querySelector(".row-type");
@@ -753,13 +833,15 @@ if (document.getElementById("new-template-btn")) {
     const exercises = Array.from(document.querySelectorAll(".exercise-row-group")).map((row) => {
       const type = row.querySelector(".row-type").dataset.value;
       const name = row.querySelector(".row-name").value;
+      const linkedToNext = row.querySelector(".row-superset-checkbox").checked;
 
       if (type === "cardio") {
         return {
           name,
           type,
           distance: Number(row.querySelector(".row-distance").value) || 0,
-          duration: Number(row.querySelector(".row-duration").value) || 0
+          duration: Number(row.querySelector(".row-duration").value) || 0,
+          linkedToNext
         };
       }
 
@@ -767,7 +849,8 @@ if (document.getElementById("new-template-btn")) {
         name,
         type,
         sets: Number(row.querySelector(".row-sets").value) || 0,
-        reps: Number(row.querySelector(".row-reps").value) || 0
+        reps: Number(row.querySelector(".row-reps").value) || 0,
+        linkedToNext
       };
     });
 
@@ -1085,6 +1168,164 @@ function renderWeekTrail() {
   updateActiveDayCard(trail);
 }
 
+// Templates mark a superset with a plain boolean on each exercise (linkedToNext) rather than
+// numbered group IDs — much simpler, and it's all a "chain" of consecutive linked exercises
+// needs. This turns that flat boolean into actual groups: a run of exercises where each one
+// (except the last) has linkedToNext set. A solo, unlinked exercise is just a group of one.
+function groupExercisesForDisplay(exercises) {
+  const groups = [];
+  let current = [];
+
+  exercises.forEach((exercise) => {
+    current.push(exercise);
+    if (!exercise.linkedToNext) {
+      groups.push(current);
+      current = [];
+    }
+  });
+  if (current.length > 0) groups.push(current); // a trailing linkedToNext with no next exercise
+
+  return groups;
+}
+
+// Builds one exercise's checkbox/info/inputs <li> — pulled out of renderTodayPlan() so a
+// superset group (see groupExercisesForDisplay above) can build several of these and wrap
+// them together, without duplicating all of this per-exercise logic.
+function buildTodayPlanItem(exercise, todayString, isBodyweightSession) {
+  const existingEntry = trainingLog.find(
+    (entry) => entry.date === todayString && entry.exercise === exercise.name
+  );
+  const isCardio = exercise.type === "cardio";
+
+  const item = document.createElement("li");
+  item.className = "exercise-item";
+
+  const checkbox = document.createElement("input");
+  checkbox.type = "checkbox";
+  checkbox.className = "exercise-checkbox";
+  checkbox.checked = Boolean(existingEntry);
+
+  const info = document.createElement("div");
+  info.className = "exercise-info";
+  const metaText = isCardio ? `${exercise.distance}km target` : `${exercise.sets} x ${exercise.reps}`;
+  info.innerHTML = `
+    <span class="exercise-name">${exercise.name}</span>
+    <span class="exercise-meta">${metaText}</span>
+  `;
+
+  const inputsWrapper = document.createElement("div");
+  inputsWrapper.className = "exercise-inputs";
+
+  // Build the right pair (or single) input for this exercise's type.
+  let firstInput, secondInput;
+  if (isCardio) {
+    firstInput = document.createElement("input");
+    firstInput.type = "number";
+    firstInput.className = "weight-input-small";
+    firstInput.placeholder = "km";
+    firstInput.min = "0";
+    firstInput.step = "0.1";
+    firstInput.value = existingEntry ? existingEntry.distance ?? "" : "";
+
+    secondInput = document.createElement("input");
+    secondInput.type = "number";
+    secondInput.className = "weight-input-small";
+    secondInput.placeholder = "min";
+    secondInput.min = "0";
+    secondInput.value = existingEntry ? existingEntry.duration ?? "" : "";
+
+    inputsWrapper.appendChild(firstInput);
+    inputsWrapper.appendChild(secondInput);
+  } else if (!isBodyweightSession) {
+    firstInput = document.createElement("input");
+    firstInput.type = "number";
+    firstInput.className = "weight-input-small";
+    firstInput.placeholder = "kg";
+    firstInput.min = "0";
+    firstInput.step = "0.5";
+    firstInput.value = existingEntry ? existingEntry.weight ?? "" : "";
+
+    inputsWrapper.appendChild(firstInput);
+  }
+
+  function buildLogEntry() {
+    if (isCardio) {
+      return {
+        date: todayString,
+        exercise: exercise.name,
+        type: "cardio",
+        distance: firstInput.value ? Number(firstInput.value) : exercise.distance,
+        duration: secondInput.value ? Number(secondInput.value) : exercise.duration
+      };
+    }
+    return {
+      date: todayString,
+      exercise: exercise.name,
+      type: "strength",
+      sets: exercise.sets,
+      reps: exercise.reps,
+      // No weight input at all for a bodyweight session (firstInput is undefined there).
+      weight: firstInput && firstInput.value ? Number(firstInput.value) : null
+    };
+  }
+
+  // --- Event listener #1: checking the box logs (or unlogs) this exercise ---
+  checkbox.addEventListener("change", () => {
+    // Clear out any earlier PB badge before re-deciding whether one applies now.
+    const existingBadge = info.querySelector(".pb-badge");
+    if (existingBadge) existingBadge.remove();
+
+    if (checkbox.checked) {
+      const newEntry = buildLogEntry();
+      trainingLog.push(newEntry);
+
+      const pbMetric = checkForNewPB(newEntry);
+      if (pbMetric) {
+        const badge = document.createElement("span");
+        badge.className = "pb-badge";
+        badge.textContent = "New PB";
+        badge.title = PB_MESSAGES[pbMetric];
+        info.appendChild(badge);
+      }
+    } else {
+      trainingLog = trainingLog.filter(
+        (entry) => !(entry.date === todayString && entry.exercise === exercise.name)
+      );
+    }
+    saveLog();
+    renderWeekTrail();
+    renderStats();
+    renderCalendar();
+    renderDayDetail();
+  });
+
+  // --- Event listener #2: editing the input(s) updates today's entry, if it exists ---
+  function handleInputChange() {
+    const entry = trainingLog.find(
+      (e) => e.date === todayString && e.exercise === exercise.name
+    );
+    if (!entry) return;
+
+    if (isCardio) {
+      entry.distance = firstInput.value ? Number(firstInput.value) : null;
+      entry.duration = secondInput.value ? Number(secondInput.value) : null;
+    } else {
+      entry.weight = firstInput.value ? Number(firstInput.value) : null;
+    }
+    saveLog();
+    renderCalendar();
+    renderDayDetail();
+  }
+
+  if (firstInput) firstInput.addEventListener("change", handleInputChange);
+  if (secondInput) secondInput.addEventListener("change", handleInputChange);
+
+  item.appendChild(checkbox);
+  item.appendChild(info);
+  item.appendChild(inputsWrapper);
+  return item;
+}
+
 function renderTodayPlan() {
   const container = document.getElementById("today-plan");
   if (!container) return; // this page doesn't show today's plan
@@ -1108,125 +1349,30 @@ function renderTodayPlan() {
   // rather than showing an input that never applies.
   const isBodyweightSession = /pilates|yoga/i.test(plan.sessionName);
 
-  plan.exercises.forEach((exercise) => {
-    const existingEntry = trainingLog.find(
-      (entry) => entry.date === todayString && entry.exercise === exercise.name
-    );
-    const isCardio = exercise.type === "cardio";
-
-    const item = document.createElement("li");
-    item.className = "exercise-item";
-
-    const checkbox = document.createElement("input");
-    checkbox.type = "checkbox";
-    checkbox.className = "exercise-checkbox";
-    checkbox.checked = Boolean(existingEntry);
-
-    const info = document.createElement("div");
-    info.className = "exercise-info";
-    const metaText = isCardio ? `${exercise.distance}km target` : `${exercise.sets} x ${exercise.reps}`;
-    info.innerHTML = `
-      <span class="exercise-name">${exercise.name}</span>
-      <span class="exercise-meta">${metaText}</span>
-    `;
-
-    const inputsWrapper = document.createElement("div");
-    inputsWrapper.className = "exercise-inputs";
-
-    // Build the right pair (or single) input for this exercise's type.
-    let firstInput, secondInput;
-    if (isCardio) {
-      firstInput = document.createElement("input");
-      firstInput.type = "number";
-      firstInput.className = "weight-input-small";
-      firstInput.placeholder = "km";
-      firstInput.min = "0";
-      firstInput.step = "0.1";
-      firstInput.value = existingEntry ? existingEntry.distance ?? "" : "";
-
-      secondInput = document.createElement("input");
-      secondInput.type = "number";
-      secondInput.className = "weight-input-small";
-      secondInput.placeholder = "min";
-      secondInput.min = "0";
-      secondInput.value = existingEntry ? existingEntry.duration ?? "" : "";
-
-      inputsWrapper.appendChild(firstInput);
-      inputsWrapper.appendChild(secondInput);
-    } else if (!isBodyweightSession) {
-      firstInput = document.createElement("input");
-      firstInput.type = "number";
-      firstInput.className = "weight-input-small";
-      firstInput.placeholder = "kg";
-      firstInput.min = "0";
-      firstInput.step = "0.5";
-      firstInput.value = existingEntry ? existingEntry.weight ?? "" : "";
-
-      inputsWrapper.appendChild(firstInput);
+  groupExercisesForDisplay(plan.exercises).forEach((group) => {
+    if (group.length === 1) {
+      list.appendChild(buildTodayPlanItem(group[0], todayString, isBodyweightSession));
+      return;
     }
 
-    function buildLogEntry() {
-      if (isCardio) {
-        return {
-          date: todayString,
-          exercise: exercise.name,
-          type: "cardio",
-          distance: firstInput.value ? Number(firstInput.value) : exercise.distance,
-          duration: secondInput.value ? Number(secondInput.value) : exercise.duration
-        };
-      }
-      return {
-        date: todayString,
-        exercise: exercise.name,
-        type: "strength",
-        sets: exercise.sets,
-        reps: exercise.reps,
-        // No weight input at all for a bodyweight session (firstInput is undefined there).
-        weight: firstInput && firstInput.value ? Number(firstInput.value) : null
-      };
-    }
+    // A superset: several exercises meant to be done back to back, so they're visually
+    // bracketed together under one label instead of reading as unrelated list items.
+    const wrapper = document.createElement("li");
+    wrapper.className = "superset-group";
 
-    // --- Event listener #1: checking the box logs (or unlogs) this exercise ---
-    checkbox.addEventListener("change", () => {
-      if (checkbox.checked) {
-        trainingLog.push(buildLogEntry());
-      } else {
-        trainingLog = trainingLog.filter(
-          (entry) => !(entry.date === todayString && entry.exercise === exercise.name)
-        );
-      }
-      saveLog();
-      renderWeekTrail();
-      renderStats();
-      renderCalendar();
-      renderDayDetail();
+    const label = document.createElement("span");
+    label.className = "superset-label";
+    label.textContent = "Superset";
+    wrapper.appendChild(label);
+
+    const innerList = document.createElement("ul");
+    innerList.className = "exercise-list superset-list";
+    group.forEach((exercise) => {
+      innerList.appendChild(buildTodayPlanItem(exercise, todayString, isBodyweightSession));
     });
+    wrapper.appendChild(innerList);
 
-    // --- Event listener #2: editing the input(s) updates today's entry, if it exists ---
-    function handleInputChange() {
-      const entry = trainingLog.find(
-        (e) => e.date === todayString && e.exercise === exercise.name
-      );
-      if (!entry) return;
-
-      if (isCardio) {
-        entry.distance = firstInput.value ? Number(firstInput.value) : null;
-        entry.duration = secondInput.value ? Number(secondInput.value) : null;
-      } else {
-        entry.weight = firstInput.value ? Number(firstInput.value) : null;
-      }
-      saveLog();
-      renderCalendar();
-      renderDayDetail();
-    }
-
-    if (firstInput) firstInput.addEventListener("change", handleInputChange);
-    if (secondInput) secondInput.addEventListener("change", handleInputChange);
-
-    item.appendChild(checkbox);
-    item.appendChild(info);
-    item.appendChild(inputsWrapper);
-    list.appendChild(item);
+    list.appendChild(wrapper);
   });
 
   container.appendChild(list);
@@ -1354,6 +1500,134 @@ if (document.getElementById("prev-month")) {
   });
 }
 
+// ---------- PROGRESS CHART ----------
+
+// Every strength exercise that's ever had an actual weight logged against it (bodyweight
+// entries, where weight is null, don't have anything numeric to chart).
+function getLoggedStrengthExerciseNames() {
+  const names = new Set();
+  trainingLog.forEach((entry) => {
+    if (entry.type === "strength" && entry.weight != null) names.add(entry.exercise);
+  });
+  return Array.from(names).sort();
+}
+
+// Draws one plain line onto the canvas — no charting library needed for a single series.
+// Reads its colors from the CSS custom properties so it automatically matches the rest of
+// the app's palette (and picks up the dark/light values if those are ever added later).
+function drawProgressChart(exerciseName, metric) {
+  const canvas = document.getElementById("progress-canvas");
+  const emptyMessage = document.getElementById("progress-empty-message");
+  if (!canvas) return;
+
+  const entries = trainingLog
+    .filter((e) => e.type === "strength" && e.exercise === exerciseName && e.weight != null)
+    .sort((a, b) => a.date.localeCompare(b.date));
+
+  if (entries.length < 2) {
+    canvas.hidden = true;
+    emptyMessage.hidden = false;
+    emptyMessage.textContent = exerciseName
+      ? `Log "${exerciseName}" a couple more times to see a trend.`
+      : "Log a few strength sets to see progress here.";
+    return;
+  }
+  canvas.hidden = false;
+  emptyMessage.hidden = true;
+
+  // Match the canvas's drawing buffer to its displayed size so it stays sharp on retina
+  // screens, then work in CSS pixels from here on.
+  const dpr = window.devicePixelRatio || 1;
+  const width = canvas.clientWidth;
+  const height = canvas.clientHeight;
+  canvas.width = width * dpr;
+  canvas.height = height * dpr;
+  const ctx = canvas.getContext("2d");
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, width, height);
+
+  const values = entries.map((e) => (metric === "volume" ? e.sets * e.reps * e.weight : e.weight));
+  const maxValue = Math.max(...values);
+  const minValue = Math.min(...values);
+  const range = maxValue - minValue || 1; // avoid dividing by zero if every value is identical
+  const padding = 20;
+
+  const pointX = (i) => padding + (i / (entries.length - 1)) * (width - padding * 2);
+  const pointY = (v) => height - padding - ((v - minValue) / range) * (height - padding * 2);
+
+  const rootStyle = getComputedStyle(document.documentElement);
+  const hairline = rootStyle.getPropertyValue("--color-hairline").trim();
+  const mocha = rootStyle.getPropertyValue("--color-mocha").trim();
+  const blush = rootStyle.getPropertyValue("--color-blush").trim();
+
+  // Baseline
+  ctx.strokeStyle = hairline;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(padding, height - padding);
+  ctx.lineTo(width - padding, height - padding);
+  ctx.stroke();
+
+  // The trend line
+  ctx.strokeStyle = mocha;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  values.forEach((v, i) => {
+    const x = pointX(i);
+    const y = pointY(v);
+    if (i === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  });
+  ctx.stroke();
+
+  // A dot at every point, with the most recent one emphasized in blush — the same accent
+  // the rest of the app reserves for "this is the current best/latest" moments.
+  values.forEach((v, i) => {
+    const isLast = i === values.length - 1;
+    ctx.beginPath();
+    ctx.arc(pointX(i), pointY(v), isLast ? 5 : 3, 0, Math.PI * 2);
+    ctx.fillStyle = isLast ? blush : mocha;
+    ctx.fill();
+  });
+}
+
+function renderProgressSection() {
+  const select = document.getElementById("progress-exercise-select");
+  if (!select) return; // this page doesn't show the progress chart
+
+  const names = getLoggedStrengthExerciseNames();
+  const previousValue = select.value;
+
+  if (names.length === 0) {
+    select.hidden = true;
+    document.getElementById("progress-canvas").hidden = true;
+    const emptyMessage = document.getElementById("progress-empty-message");
+    emptyMessage.hidden = false;
+    emptyMessage.textContent = "Log a few strength sets to see progress here.";
+    return;
+  }
+
+  select.hidden = false;
+  select.innerHTML = names.map((name) => `<option value="${name}">${name}</option>`).join("");
+  if (names.includes(previousValue)) select.value = previousValue;
+
+  const metric = document.getElementById("progress-metric-toggle").dataset.value;
+  drawProgressChart(select.value, metric);
+}
+
+if (document.getElementById("progress-exercise-select")) {
+  document.getElementById("progress-exercise-select").addEventListener("change", (event) => {
+    const metric = document.getElementById("progress-metric-toggle").dataset.value;
+    drawProgressChart(event.target.value, metric);
+  });
+
+  setupTypeToggle(document.getElementById("progress-metric-toggle"), () => {
+    const select = document.getElementById("progress-exercise-select");
+    const metric = document.getElementById("progress-metric-toggle").dataset.value;
+    drawProgressChart(select.value, metric);
+  });
+}
+
 function renderCountdown() {
   const countdownEl = document.getElementById("countdown-text");
   if (!countdownEl) return;
@@ -1415,6 +1689,7 @@ if (document.getElementById("log-form")) {
     }
 
     trainingLog.push(entry);
+    const pbMetric = checkForNewPB(entry);
 
     saveLog();
     renderCalendar();
@@ -1425,6 +1700,14 @@ if (document.getElementById("log-form")) {
     // reset() only touches native form controls — the type toggle is a custom div, so reset it by hand.
     setTypeToggleValue(document.getElementById("log-type"), "strength");
     toggleLogFormFields();
+
+    const pbMessageEl = document.getElementById("log-pb-message");
+    if (pbMetric) {
+      pbMessageEl.textContent = PB_MESSAGES[pbMetric];
+      pbMessageEl.hidden = false;
+    } else {
+      pbMessageEl.hidden = true;
+    }
   });
 }
 
@@ -1762,5 +2045,6 @@ renderStats();
 renderTodayPlan();
 renderCalendar();
 renderDayDetail();
+renderProgressSection();
 renderSavedVideos();
 updateTimerNavDot();
