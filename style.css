@@ -75,7 +75,11 @@ main {
 
 .week-trail {
   display: grid;
-  grid-template-columns: repeat(7, 1fr);
+  /* minmax(0, 1fr) rather than plain 1fr -- a grid item's default min-width is its content's
+     min-content size, so a track can grow past its fair share to fit an unbreakable word
+     (e.g. "mobility"). minmax(0, 1fr) overrides that, forcing all 7 columns to the exact
+     same width and letting the day-card's own text wrapping handle the rest. */
+  grid-template-columns: repeat(7, minmax(0, 1fr));
   gap: 8px;
   padding: 10px 2px 2px;
 }
