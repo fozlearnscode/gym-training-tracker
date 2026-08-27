@@ -175,6 +175,14 @@ main {
   box-shadow: 0 0 0 2px rgba(169, 128, 95, 0.15);
 }
 
+/* A gentle breathing glow marks whichever card is actually TODAY, distinct from a day that's
+   merely centered/active in the carousel — the ring above is the static fallback for
+   reduced-motion, this just animates its spread. */
+@keyframes today-pulse {
+  0%, 100% { box-shadow: 0 0 0 2px rgba(169, 128, 95, 0.15); }
+  50% { box-shadow: 0 0 0 5px rgba(169, 128, 95, 0.28); }
+}
+
 .day-card-body {
   flex: 1;
   display: flex;
@@ -428,6 +436,15 @@ main {
   border-color: var(--color-blush);
 }
 
+/* Only added by script.js for the split-second right after the user actually checks a box —
+   never present on an already-completed exercise re-rendered from saved data — so this plays
+   once as real feedback for the action, not every time the list happens to redraw. */
+@keyframes checkbox-bounce {
+  0% { transform: scale(0.8); }
+  55% { transform: scale(1.2); }
+  100% { transform: scale(1); }
+}
+
 .exercise-info {
   flex: 1;
   display: flex;
@@ -488,9 +505,21 @@ main {
   background: var(--color-bg);
 }
 
+/* Stands in for the reference photos while they're being fetched — sized the same as
+   .reference-image so nothing jumps around once the real images arrive. The gradient itself
+   shows even with reduced motion; only the sweeping animation is gated below. */
+.shimmer-block {
+  background: linear-gradient(90deg, var(--color-hairline) 25%, var(--color-bg) 50%, var(--color-hairline) 75%);
+  background-size: 400px 100%;
+}
+
+@keyframes shimmer-sweep {
+  0% { background-position: -200px 0; }
+  100% { background-position: 200px 0; }
+}
+
 .reference-caption,
-.reference-empty,
-.reference-loading {
+.reference-empty {
   font-size: 12px;
   color: var(--color-muted);
   margin: 0;
@@ -513,6 +542,15 @@ main {
   border-radius: 20px;
   margin-left: 8px;
   vertical-align: middle;
+}
+
+/* Used by both the .pb-badge above (freshly created only at the celebratory moment, so it
+   always plays once naturally) and .form-success (a persistent element toggled via [hidden] —
+   animations don't run while display:none, so hiding/unhiding it replays this each time too). */
+@keyframes pb-pop-in {
+  0% { transform: scale(0); opacity: 0; }
+  60% { transform: scale(1.15); opacity: 1; }
+  100% { transform: scale(1); }
 }
 
 /* Supersets: a few exercises meant back to back, bracketed together under one label rather
@@ -724,6 +762,14 @@ select:focus-visible {
   background: var(--color-blush);
   opacity: 1;
   filter: none;
+}
+
+/* script.js only adds .just-unlocked the first time a badge is detected as newly earned in
+   this page session — an already-earned badge just renders in its final state, no replay. */
+@keyframes badge-unlock {
+  0% { transform: scale(0.85); box-shadow: 0 0 0 0 rgba(221, 187, 174, 0.6); }
+  50% { transform: scale(1.12); box-shadow: 0 0 0 8px rgba(221, 187, 174, 0); }
+  100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(221, 187, 174, 0); }
 }
 
 .badge-icon {
@@ -1386,7 +1432,55 @@ select:focus-visible {
 }
 
 @media (prefers-reduced-motion: no-preference) {
+  /* A brief press-down on every tappable control — cheap, but it's the one touch that makes
+     the whole app feel like it's responding to you rather than just eventually updating.
+     .btn-primary already transitions its background on hover, so its transform is added to
+     that same declaration rather than a separate one — two `transition` rules on the same
+     selector don't merge, the second just silently replaces the first. */
   .btn-primary {
-    transition: background 0.15s ease;
+    transition: background 0.15s ease, transform 0.1s ease;
+  }
+
+  .btn-secondary,
+  .btn-small,
+  .btn-icon,
+  .preset-btn,
+  .type-toggle-btn,
+  .reference-btn {
+    transition: transform 0.1s ease;
+  }
+
+  .btn-primary:active,
+  .btn-secondary:active,
+  .btn-small:active,
+  .btn-icon:active,
+  .preset-btn:active,
+  .type-toggle-btn:active,
+  .reference-btn:active {
+    transform: scale(0.97);
+  }
+
+  .exercise-checkbox.just-checked {
+    animation: checkbox-bounce 0.3s ease;
+  }
+
+  .pb-badge {
+    animation: pb-pop-in 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  .form-success {
+    animation: pb-pop-in 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  .badge-tile.just-unlocked {
+    animation: badge-unlock 0.5s ease;
+  }
+
+  .day-card.is-today {
+    animation: today-pulse 2.4s ease-in-out infinite;
+  }
+
+  .shimmer-block {
+    animation: shimmer-sweep 1.2s ease-in-out infinite;
   }
 }

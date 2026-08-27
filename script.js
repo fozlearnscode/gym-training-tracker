@@ -311,19 +311,35 @@ const BADGE_DEFINITIONS = [
   { icon: "🌟", name: "30-Day Streak", isEarned: () => calculateLongestStreakEver() >= 30 }
 ];
 
+// Tracks which badges have already been seen as earned during THIS page session, so the
+// unlock animation only plays the moment a badge is actually newly earned — not every time the
+// shelf happens to re-render, and not for badges that were already earned before this page
+// even loaded (badgeShelfInitialized guards that very first render).
+let previouslyEarnedBadges = new Set();
+let badgeShelfInitialized = false;
+
 function renderBadgeShelf() {
   const container = document.getElementById("badge-shelf");
   if (!container) return; // this page doesn't show badges
 
   container.innerHTML = BADGE_DEFINITIONS.map((badge) => {
     const earned = badge.isEarned();
+    const justUnlocked = badgeShelfInitialized && earned && !previouslyEarnedBadges.has(badge.name);
+    const classes = ["badge-tile", earned && "is-earned", justUnlocked && "just-unlocked"]
+      .filter(Boolean)
+      .join(" ");
     return `
-      <div class="badge-tile ${earned ? "is-earned" : ""}" title="${earned ? "Earned!" : "Not earned yet"}">
+      <div class="${classes}" title="${earned ? "Earned!" : "Not earned yet"}">
         <span class="badge-icon">${badge.icon}</span>
         <span class="badge-name">${badge.name}</span>
       </div>
     `;
   }).join("");
+
+  BADGE_DEFINITIONS.forEach((badge) => {
+    if (badge.isEarned()) previouslyEarnedBadges.add(badge.name);
+  });
+  badgeShelfInitialized = true;
 }
 
 // Below the first milestone, the streak stat is just a plain number like any other stat.
@@ -344,10 +360,32 @@ function buildStreakStatHtml(streak) {
   }
   return `
     <div class="stat-block">
-      <span class="stat-number">${streak}</span>
+      <span class="stat-number" data-target="${streak}">0</span>
       <span class="stat-label">day streak</span>
     </div>
   `;
+}
+
+// Counts a stat number up from 0 to its real value instead of just appearing fully-formed —
+// respects prefers-reduced-motion by jumping straight to the final value for anyone who's
+// asked for less motion, same as every animation in this file.
+function animateCountUp(element, endValue) {
+  const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (prefersReducedMotion || endValue === 0) {
+    element.textContent = endValue;
+    return;
+  }
+
+  const duration = 600;
+  const startTime = performance.now();
+
+  function step(now) {
+    const progress = Math.min((now - startTime) / duration, 1);
+    const eased = 1 - Math.pow(1 - progress, 3); // ease-out cubic — fast start, gentle finish
+    element.textContent = Math.round(endValue * eased);
+    if (progress < 1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
 }
 
 function renderStats() {
@@ -360,18 +398,22 @@ function renderStats() {
   container.innerHTML = `
     ${buildStreakStatHtml(streak)}
     <div class="stat-block">
-      <span class="stat-number">${sessionsCompleted}</span>
+      <span class="stat-number" data-target="${sessionsCompleted}">0</span>
       <span class="stat-label">sessions (30d)</span>
     </div>
     <div class="stat-block">
-      <span class="stat-number">${totalSets}</span>
+      <span class="stat-number" data-target="${totalSets}">0</span>
       <span class="stat-label">sets logged (30d)</span>
     </div>
     <div class="stat-block">
-      <span class="stat-number">${totalDistance}</span>
+      <span class="stat-number" data-target="${totalDistance}">0</span>
       <span class="stat-label">km run (30d)</span>
     </div>
   `;
+
+  container.querySelectorAll(".stat-number[data-target]").forEach((el) => {
+    animateCountUp(el, Number(el.dataset.target));
+  });
 
   renderBadgeShelf();
 }
@@ -1363,7 +1405,12 @@ async function toggleExerciseReference(exerciseName, panel, button) {
   }
 
   panel.hidden = false;
-  panel.innerHTML = `<p class="reference-loading">Looking that up...</p>`;
+  panel.innerHTML = `
+    <div class="reference-images">
+      <div class="shimmer-block reference-image"></div>
+      <div class="shimmer-block reference-image"></div>
+    </div>
+  `;
   button.disabled = true;
 
   try {
@@ -1522,6 +1569,11 @@ function buildTodayPlanItem(exercise, todayString, isBodyweightSession) {
     if (existingBadge) existingBadge.remove();
 
     if (checkbox.checked) {
+      // Only added here, on the actual click — never when re-rendering an exercise that was
+      // already checked off earlier — so this plays once as real feedback, not on every redraw.
+      checkbox.classList.add("just-checked");
+      checkbox.addEventListener("animationend", () => checkbox.classList.remove("just-checked"), { once: true });
+
       const newEntry = buildLogEntry();
       trainingLog.push(newEntry);
 
