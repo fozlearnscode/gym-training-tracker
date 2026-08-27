@@ -1277,6 +1277,123 @@ function renderWeekTrail() {
   updateActiveDayCard(trail);
 }
 
+// ---------- EXERCISE REFERENCE ("How do I do this?") ----------
+
+// free-exercise-db (yuhonas/free-exercise-db on GitHub, Unlicense/public domain) is a static
+// JSON file plus JPEGs served straight from raw.githubusercontent.com with CORS wide open —
+// no API key, no backend, same "call it straight from the browser" pattern as TikTok's oEmbed
+// endpoint elsewhere in this file. It's a weightlifting-focused dataset (873 exercises), so it
+// has good coverage for standard strength moves but none at all for cardio or Pilates/Yoga —
+// those just fall through to the "no reference found" message below, honestly.
+const EXERCISE_REFERENCE_URL = "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/dist/exercises.json";
+const EXERCISE_REFERENCE_IMAGE_BASE = "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/";
+
+let exerciseReferenceDatabase = null; // lazy-loaded on first use, then kept for the rest of the session
+
+async function loadExerciseReferenceDatabase() {
+  if (exerciseReferenceDatabase) return exerciseReferenceDatabase;
+
+  // Cached locally too — it's ~1MB, no need to re-download it every single visit.
+  const cached = localStorage.getItem("exerciseReferenceCache");
+  if (cached) {
+    exerciseReferenceDatabase = JSON.parse(cached);
+    return exerciseReferenceDatabase;
+  }
+
+  const response = await fetch(EXERCISE_REFERENCE_URL);
+  const data = await response.json();
+  exerciseReferenceDatabase = data;
+  try {
+    localStorage.setItem("exerciseReferenceCache", JSON.stringify(data));
+  } catch (error) {
+    // Safari private browsing (or a full quota) throws on write — fine to just skip caching
+    // and re-fetch next time rather than breaking the lookup itself.
+  }
+  return data;
+}
+
+// Very basic singular/plural handling ("Squats" -> "squat") so the word-matching below isn't
+// tripped up by something as simple as pluralization.
+function normalizeReferenceWord(word) {
+  if (word.endsWith("es") && word.length > 4) return word.slice(0, -2);
+  if (word.endsWith("s") && word.length > 3) return word.slice(0, -1);
+  return word;
+}
+
+function getReferenceWords(name) {
+  return name
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, " ")
+    .split(/\s+/)
+    .filter(Boolean)
+    .map(normalizeReferenceWord);
+}
+
+// Matches by whole words, not raw substring — a naive "does the string contain this text"
+// check matches "run" inside "cRUNches", which is exactly the kind of wrong match this avoids.
+// Among every candidate where one name's words are fully contained in the other's, the one
+// with the fewest extra words wins, as a simple stand-in for "the more generic match".
+function findExerciseReference(exerciseName, database) {
+  const queryWords = getReferenceWords(exerciseName);
+  if (queryWords.length === 0) return null;
+
+  let bestMatch = null;
+  let bestExtraWords = Infinity;
+
+  database.forEach((entry) => {
+    const candidateWords = getReferenceWords(entry.name);
+    const allQueryWordsFound = queryWords.every((w) => candidateWords.includes(w));
+    const allCandidateWordsFound = candidateWords.every((w) => queryWords.includes(w));
+    if (allQueryWordsFound || allCandidateWordsFound) {
+      const extraWords = Math.abs(candidateWords.length - queryWords.length);
+      if (extraWords < bestExtraWords) {
+        bestExtraWords = extraWords;
+        bestMatch = entry;
+      }
+    }
+  });
+
+  return bestMatch;
+}
+
+async function toggleExerciseReference(exerciseName, panel, button) {
+  if (!panel.hidden) {
+    panel.hidden = true;
+    return;
+  }
+
+  panel.hidden = false;
+  panel.innerHTML = `<p class="reference-loading">Looking that up...</p>`;
+  button.disabled = true;
+
+  try {
+    const database = await loadExerciseReferenceDatabase();
+    const match = findExerciseReference(exerciseName, database);
+
+    if (!match) {
+      panel.innerHTML = `<p class="reference-empty">No visual reference found for "${exerciseName}".</p>`;
+      return;
+    }
+
+    const imagesHtml = match.images
+      .map(
+        (path) =>
+          `<img src="${EXERCISE_REFERENCE_IMAGE_BASE}${path}" alt="${match.name}" class="reference-image" loading="lazy">`
+      )
+      .join("");
+    const firstStep = match.instructions[0] || "";
+
+    panel.innerHTML = `
+      <div class="reference-images">${imagesHtml}</div>
+      <p class="reference-caption">${match.name}${firstStep ? ` — ${firstStep}` : ""}</p>
+    `;
+  } catch (error) {
+    panel.innerHTML = `<p class="reference-empty">Couldn't load a reference right now.</p>`;
+  } finally {
+    button.disabled = false;
+  }
+}
+
 // Templates mark a superset with a plain boolean on each exercise (linkedToNext) rather than
 // numbered group IDs — much simpler, and it's all a "chain" of consecutive linked exercises
 // needs. This turns that flat boolean into actual groups: a run of exercises where each one
@@ -1318,10 +1435,19 @@ function buildTodayPlanItem(exercise, todayString, isBodyweightSession) {
   info.className = "exercise-info";
   const targetMetaText = isCardio ? `${exercise.distance}km target` : `${exercise.sets} x ${exercise.reps}`;
   info.innerHTML = `
-    <span class="exercise-name">${exercise.name}</span>
+    <div class="exercise-name-row">
+      <span class="exercise-name">${exercise.name}</span>
+      <button type="button" class="reference-btn" aria-label="How do I do this?">?</button>
+    </div>
     <span class="exercise-meta">${targetMetaText}</span>
+    <div class="reference-panel" hidden></div>
   `;
   const metaEl = info.querySelector(".exercise-meta");
+  const referenceBtn = info.querySelector(".reference-btn");
+  const referencePanel = info.querySelector(".reference-panel");
+  referenceBtn.addEventListener("click", () => {
+    toggleExerciseReference(exercise.name, referencePanel, referenceBtn);
+  });
 
   const inputsWrapper = document.createElement("div");
   inputsWrapper.className = "exercise-inputs";

@@ -434,8 +434,66 @@ main {
   flex-direction: column;
 }
 
+.exercise-name-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
 .exercise-name {
   font-weight: 500;
+}
+
+.reference-btn {
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border-radius: 50%;
+  border: 1.5px solid var(--color-silver);
+  background: none;
+  color: var(--color-silver);
+  font-family: var(--font-body);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.reference-btn:hover {
+  border-color: var(--color-mocha);
+  color: var(--color-mocha);
+}
+
+.reference-panel[hidden] {
+  display: none;
+}
+
+.reference-panel {
+  margin-top: 8px;
+}
+
+.reference-images {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.reference-image {
+  width: 72px;
+  height: 72px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid var(--color-hairline);
+  background: var(--color-bg);
+}
+
+.reference-caption,
+.reference-empty,
+.reference-loading {
+  font-size: 12px;
+  color: var(--color-muted);
+  margin: 0;
 }
 
 .exercise-meta {
