@@ -3,6 +3,18 @@
 const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 const orderedDays = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 
+// Not a simple slice(0, 3) -- "Tues" and "Thurs" are 4 letters, so each day needs its own
+// entry rather than a uniform truncation rule.
+const dayAbbreviations = {
+  Sunday: "Sun",
+  Monday: "Mon",
+  Tuesday: "Tues",
+  Wednesday: "Wed",
+  Thursday: "Thurs",
+  Friday: "Fri",
+  Saturday: "Sat"
+};
+
 function generateId() {
   // Good enough for a personal app: current time + a random chunk, base-36 for shortness.
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
@@ -929,14 +941,55 @@ function renderAssignGrid() {
 
 // ---------- RENDERING ----------
 
+// Tracks whether the week carousel has been scrolled to today yet. Re-renders happen a lot
+// (any log change, template edit, etc.) and each one rebuilds the cards from scratch, but we
+// only want to auto-center on today the very first time — after that, whichever day the user
+// has swiped to should stay put across re-renders instead of jumping back.
+let weekCarouselCentered = false;
+let weekCarouselListenerAttached = false;
+
+// Must match .day-card's compact `width` in style.css — used below to work out how much side
+// padding the carousel needs so the very first and last day can still be scrolled to center.
+const COMPACT_DAY_CARD_WIDTH = 68;
+
+// Marks whichever day card's center is geometrically closest to the carousel's own center as
+// "active" (full title revealed), un-marking every other card. Tried this first with
+// IntersectionObserver's isIntersecting/threshold, but that just answers "is this card >X%
+// visible" — with several compact 56px cards fitting in the viewport at once, more than one
+// can clear the same threshold simultaneously, so it can't tell us which ONE is centered.
+// Plain geometry (nearest center-to-center distance) always picks exactly one.
+function updateActiveDayCard(trail) {
+  const containerCenter = trail.getBoundingClientRect().left + trail.clientWidth / 2;
+  let closestCard = null;
+  let closestDistance = Infinity;
+
+  trail.querySelectorAll(".day-card").forEach((card) => {
+    const cardRect = card.getBoundingClientRect();
+    const distance = Math.abs(cardRect.left + cardRect.width / 2 - containerCenter);
+    if (distance < closestDistance) {
+      closestDistance = distance;
+      closestCard = card;
+    }
+  });
+
+  trail.querySelectorAll(".day-card").forEach((card) => {
+    card.classList.toggle("is-active", card === closestCard);
+  });
+}
+
 function renderWeekTrail() {
   const trail = document.getElementById("week-trail");
   if (!trail) return; // this page doesn't show the week trail
+
+  // A rebuild (trail.innerHTML = "") resets scroll position to 0, so capture it first and
+  // restore it after — otherwise every re-render would yank the carousel back to Monday.
+  const previousScrollLeft = trail.scrollLeft;
 
   trail.innerHTML = ""; // clear out anything from a previous render
 
   const weekDates = getWeekDates();
   const todayString = toDateString(new Date());
+  let todayCard = null;
 
   weekDates.forEach((dateString) => {
     const date = new Date(dateString);
@@ -961,9 +1014,16 @@ function renderWeekTrail() {
     rings.className = "day-card-rings";
     rings.innerHTML = "<span></span><span></span>";
 
+    // Both labels are always in the DOM; CSS shows whichever one matches the card's
+    // compact/active state (see .day-card-header-full in style.css). Toggling visibility
+    // this way means the carousel's scroll handler only ever needs to flip the .is-active
+    // class -- it doesn't have to also swap text content on every scroll frame.
     const header = document.createElement("div");
     header.className = "day-card-header";
-    header.textContent = dayName.slice(0, 2);
+    header.innerHTML = `
+      <span class="day-card-header-abbr">${dayAbbreviations[dayName]}</span>
+      <span class="day-card-header-full">${dayName}</span>
+    `;
 
     const body = document.createElement("div");
     body.className = "day-card-body";
@@ -988,8 +1048,41 @@ function renderWeekTrail() {
       card.appendChild(check);
     }
 
+    if (dateString === todayString) todayCard = card;
+
     trail.appendChild(card);
   });
+
+  // Enough left/right padding that the very first and last day can still be scrolled all the
+  // way to center, not just up against the edge of the screen. This has to be worked out from
+  // the container's actual width rather than a fixed CSS value, since that width varies by
+  // device \u2014 style.css can't know it up front.
+  const sidePadding = Math.max(0, (trail.clientWidth - COMPACT_DAY_CARD_WIDTH) / 2);
+  trail.style.paddingLeft = `${sidePadding}px`;
+  trail.style.paddingRight = `${sidePadding}px`;
+
+  // Re-check the active (centered) card on every scroll frame as the user swipes. The
+  // listener is only attached once ever, not on every render -- `trail` itself is never
+  // recreated (only its contents are), so re-attaching here on each rebuild would stack up a
+  // fresh duplicate listener every time instead of replacing the old one.
+  if (!weekCarouselListenerAttached) {
+    trail.addEventListener("scroll", () => {
+      requestAnimationFrame(() => updateActiveDayCard(trail));
+    });
+    weekCarouselListenerAttached = true;
+  }
+
+  if (!weekCarouselCentered && todayCard) {
+    // "auto" (not "smooth") on first load -- there's nothing to animate from yet.
+    todayCard.scrollIntoView({ behavior: "auto", inline: "center", block: "nearest" });
+    weekCarouselCentered = true;
+  } else {
+    trail.scrollLeft = previousScrollLeft;
+  }
+
+  // Set the correct active card immediately rather than waiting for a scroll event to fire \u2014
+  // setting scrollLeft/scrollIntoView above doesn't reliably fire one synchronously.
+  updateActiveDayCard(trail);
 }
 
 function renderTodayPlan() {

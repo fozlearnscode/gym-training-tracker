@@ -73,15 +73,23 @@ main {
 
 /* Week view — calendar-page cards, the signature element */
 
+/* A horizontal swipe-through gallery rather than a static row: only the centered day is
+   expanded to show its title (see .day-card.is-active below); everything else collapses to
+   an icon-only chip. script.js sets left/right padding dynamically (half the container width
+   minus half a compact card) so the very first and last day can still be scrolled to center —
+   a fixed CSS value can't do that since it depends on the actual screen width. */
 .week-trail {
-  display: grid;
-  /* minmax(0, 1fr) rather than plain 1fr -- a grid item's default min-width is its content's
-     min-content size, so a track can grow past its fair share to fit an unbreakable word
-     (e.g. "mobility"). minmax(0, 1fr) overrides that, forcing all 7 columns to the exact
-     same width and letting the day-card's own text wrapping handle the rest. */
-  grid-template-columns: repeat(7, minmax(0, 1fr));
-  gap: 8px;
-  padding: 10px 2px 2px;
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  padding: 10px 0 2px;
+}
+
+.week-trail::-webkit-scrollbar {
+  display: none;
 }
 
 .day-card {
@@ -89,9 +97,18 @@ main {
   background: var(--color-card);
   border: 1px solid var(--color-hairline);
   border-radius: 10px;
-  min-height: 90px;
+  width: 68px;
+  min-height: 76px;
+  flex-shrink: 0;
   display: flex;
   flex-direction: column;
+  scroll-snap-align: center;
+  transition: width 0.25s ease, min-height 0.25s ease;
+}
+
+.day-card.is-active {
+  width: 148px;
+  min-height: 122px;
 }
 
 /* The two small "binder holes" peeking above the card — the calendar-page detail */
@@ -127,6 +144,21 @@ main {
   border-radius: 9px 9px 0 0;
   background: var(--color-bg);
   color: var(--color-muted);
+  white-space: nowrap;
+}
+
+/* Compact cards show the short abbreviation ("Tues"); the centered/active card spells the
+   day out in full ("Tuesday") instead -- see the two spans built in renderWeekTrail(). */
+.day-card-header-full {
+  display: none;
+}
+
+.day-card.is-active .day-card-header-abbr {
+  display: none;
+}
+
+.day-card.is-active .day-card-header-full {
+  display: inline;
 }
 
 .day-card.is-complete {
@@ -148,22 +180,31 @@ main {
   display: flex;
   flex-direction: column;
   align-items: center;
-  /* The icon docks to a fixed position (flex-start) rather than being centered as one block
-     with the label — centering the whole group meant a one-line label (e.g. "Yoga") sat
-     lower than a two-line one (e.g. "Rest day"), so icons drifted out of alignment with
-     each other across the row. Anchoring the icon and centering just the label underneath
-     keeps every icon at the same height regardless of how long its label is. */
-  justify-content: flex-start;
+  /* Compact cards have no label at all, just the icon, so it's centered in the full space —
+     a proper "larger image depicting the session," not a small mark floating near the top.
+     The active card still docks its icon to the top instead, since the label grows in below
+     it there and needs somewhere fixed to grow from. */
+  justify-content: center;
   gap: 4px;
   text-align: center;
   padding: 10px 5px 6px;
 }
 
+.day-card.is-active .day-card-body {
+  justify-content: flex-start;
+}
+
 .day-card-icon {
-  width: 18px;
-  height: 18px;
+  width: 34px;
+  height: 34px;
   color: var(--color-ink);
   flex-shrink: 0;
+  transition: width 0.2s ease, height 0.2s ease;
+}
+
+.day-card.is-active .day-card-icon {
+  width: 40px;
+  height: 40px;
 }
 
 .day-card.is-rest .day-card-icon {
@@ -195,11 +236,28 @@ main {
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
-  /* Centers the label in whatever space is left below the now fixed-position icon —
-     auto margins on a flex child do this regardless of the item's own display type,
-     so it doesn't fight with the -webkit-box clamping above. */
-  margin-top: auto;
-  margin-bottom: auto;
+  /* A flex child's default min-width is its own unwrapped content width, not its parent's
+     width — so a long word/name (e.g. a custom template like "Cardiovascular Endurance")
+     would size this box to fit on one line and spill out over neighboring tiles instead of
+     wrapping. width: 100% + min-width: 0 forces it back down to the tile's actual width. */
+  width: 100%;
+  min-width: 0;
+  /* overflow-wrap alone only breaks mid-word when a word genuinely has nowhere else to
+     break (e.g. "Pilates" alone on its line) — word-break: break-word was more aggressive
+     and split short words that didn't need it. hyphens: auto adds a real hyphen at that
+     break point instead of an abrupt cut, where the browser supports it. */
+  overflow-wrap: break-word;
+  hyphens: auto;
+  /* Hidden in the compact state (an icon-only chip) and revealed once this card becomes the
+     centered/active one in the carousel — see the IntersectionObserver in renderWeekTrail(). */
+  max-height: 0;
+  opacity: 0;
+  transition: max-height 0.2s ease, opacity 0.15s ease;
+}
+
+.day-card.is-active .day-card-session {
+  max-height: 60px;
+  opacity: 1;
 }
 
 .day-card.is-rest .day-card-session {
