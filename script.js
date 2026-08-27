@@ -1750,6 +1750,21 @@ if (document.getElementById("progress-exercise-select")) {
   });
 }
 
+// Below ~3 weeks out, the countdown becomes taper-aware instead of just ticking down the same
+// way it does for the other four months of training — every real marathon plan (Hal Higdon,
+// Runna, etc.) treats taper as its own distinct phase, not a quiet fade-out at the end. Kept
+// as its own pure function (just daysLeft in, a string out) so it's easy to test every tier
+// directly without having to fake the system clock.
+function buildCountdownText(daysLeft) {
+  if (daysLeft <= 0) return "Race day! Go get 'em, Steph 🤎";
+  if (daysLeft === 1) return "1 day to go — trust the training, keep it easy from here.";
+  if (daysLeft <= 3) return `${daysLeft} days to go — trust the training, keep it easy from here.`;
+  if (daysLeft <= 7) return `${daysLeft} days to go — race week. Short and easy, nothing new.`;
+  if (daysLeft <= 14) return `${daysLeft} days to go — taper time, ease back the mileage.`;
+  if (daysLeft <= 21) return `${daysLeft} days until Raggy's run — taper starts soon.`;
+  return `${daysLeft} days until Raggy's run at the Melbourne Marathon`;
+}
+
 function renderCountdown() {
   const countdownEl = document.getElementById("countdown-text");
   if (!countdownEl) return;
@@ -1758,7 +1773,7 @@ function renderCountdown() {
   const today = new Date();
   const msPerDay = 1000 * 60 * 60 * 24;
   const daysLeft = Math.ceil((raceDate - today) / msPerDay);
-  countdownEl.textContent = `${daysLeft} days until Raggy's run at the Melbourne Marathon`;
+  countdownEl.textContent = buildCountdownText(daysLeft);
 }
 
 // Greets Steph by name, varying the wording by the time of day — a nice personal touch that's
