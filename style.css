@@ -1,16 +1,23 @@
 :root {
-  /* "Pilates studio" palette — warm, soft, low-contrast neutrals with a single
-     mocha accent, plus a dusty-blush tone reserved for "complete/success" states. */
-  --color-bg: #F6EFE4;
-  --color-card: #FFFBF5;
-  --color-ink: #4A3B32;
-  --color-muted: #8C7A68;
-  --color-mocha: #A9805F;
-  --color-silver: #B7B3AC;
-  --color-blush: #DDBBAE;
-  --color-hairline: #E7DDCF;
+  /* "Pilates studio" palette, v2 ("Bold Chocolate") — same warm family as before, just
+     richer: a more saturated terracotta-mocha, a deeper ink, and a chocolate brown (picked
+     directly from icon-512.png) reserved for the tab bar so it echoes the app icon. */
+  --color-bg: #F1E4CF;
+  --color-card: #FFF9EE;
+  --color-ink: #2A1B10;
+  --color-muted: #7A6650;
+  --color-mocha: #A65C2E;
+  --color-silver: #9C9284;
+  --color-blush: #D69573;
+  --color-hairline: #DFC9A6;
 
-  --font-display: "Cormorant Garamond", serif;
+  /* Tab bar only — a near-black espresso ground with its own inactive/active tones, since
+     mocha and ink (tuned for light backgrounds) don't have enough contrast against it. */
+  --color-tabbar-bg: #241609;
+  --color-tabbar-inactive: #9A8265;
+  --color-tabbar-active: #E8B27A;
+
+  --font-display: "Marcellus", serif;
   --font-body: "Poppins", sans-serif;
   --font-mono: "JetBrains Mono", monospace;
 
@@ -81,9 +88,9 @@ main {
 
 .wordmark {
   font-family: var(--font-display);
-  font-style: italic;
-  font-weight: 500;
+  font-weight: 400;
   font-size: 32px;
+  letter-spacing: 0.015em;
   margin: 0;
 }
 
@@ -196,15 +203,15 @@ main {
 
 .day-card.is-today {
   border-color: var(--color-mocha);
-  box-shadow: 0 0 0 2px rgba(169, 128, 95, 0.15);
+  box-shadow: 0 0 0 2px rgba(166, 92, 46, 0.15);
 }
 
 /* A gentle breathing glow marks whichever card is actually TODAY, distinct from a day that's
    merely centered/active in the carousel — the ring above is the static fallback for
    reduced-motion, this just animates its spread. */
 @keyframes today-pulse {
-  0%, 100% { box-shadow: 0 0 0 2px rgba(169, 128, 95, 0.15); }
-  50% { box-shadow: 0 0 0 5px rgba(169, 128, 95, 0.28); }
+  0%, 100% { box-shadow: 0 0 0 2px rgba(166, 92, 46, 0.15); }
+  50% { box-shadow: 0 0 0 5px rgba(166, 92, 46, 0.28); }
 }
 
 .day-card-body {
@@ -323,8 +330,10 @@ main {
   left: 0;
   right: 0;
   z-index: 20;
-  background: var(--color-card);
-  border-top: 1px solid var(--color-hairline);
+  /* Chocolate brown, matching the app icon — its own dark ground, so the tab bar's own
+     tokens (below) are used instead of the light-mode --color-ink/--color-mocha pairing
+     the rest of the app uses. */
+  background: var(--color-tabbar-bg);
 }
 
 .tab-bar {
@@ -347,22 +356,22 @@ main {
   font-family: var(--font-body);
   font-size: 10px;
   font-weight: 500;
-  color: var(--color-muted);
+  color: var(--color-tabbar-inactive);
   cursor: pointer;
   text-decoration: none;
   -webkit-tap-highlight-color: transparent;
 }
 
 .tab-btn:hover {
-  color: var(--color-ink);
+  color: var(--color-card);
 }
 
 .tab-btn.is-active {
-  color: var(--color-mocha);
+  color: var(--color-tabbar-active);
 }
 
 .tab-btn:focus-visible {
-  outline: 2px solid var(--color-mocha);
+  outline: 2px solid var(--color-tabbar-active);
   outline-offset: 2px;
   border-radius: 8px;
 }
@@ -396,8 +405,8 @@ main {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: var(--color-mocha);
-  border: 1.5px solid var(--color-card);
+  background: var(--color-tabbar-active);
+  border: 1.5px solid var(--color-tabbar-bg);
 }
 
 /* Cards */
@@ -410,13 +419,12 @@ main {
   border-radius: var(--radius);
   padding: 20px 22px;
   border: 1px solid var(--color-hairline);
-  box-shadow: 0 8px 24px -4px rgba(74, 59, 50, 0.10), 0 2px 6px rgba(74, 59, 50, 0.05);
+  box-shadow: 0 8px 24px -4px rgba(42, 27, 16, 0.10), 0 2px 6px rgba(42, 27, 16, 0.05);
 }
 
 .card h2 {
   font-family: var(--font-display);
-  font-style: italic;
-  font-weight: 500;
+  font-weight: 400;
   font-size: 20px;
   margin: 0 0 14px;
 }
@@ -558,6 +566,27 @@ main {
   font-size: 12px;
   color: var(--color-muted);
   margin: 0;
+}
+
+/* Small CC BY-SA credit under a wger-sourced caption — attribution the license requires,
+   kept deliberately quiet since it's a footnote, not part of the actual instructions. */
+.reference-source {
+  font-size: 10px;
+  color: var(--color-silver);
+  margin: 4px 0 0;
+}
+
+.reference-search-link {
+  display: inline-block;
+  margin-top: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--color-mocha);
+  text-decoration: none;
+}
+
+.reference-search-link:hover {
+  text-decoration: underline;
 }
 
 .exercise-meta {
@@ -829,9 +858,9 @@ select:focus-visible {
 /* script.js only adds .just-unlocked the first time a badge is detected as newly earned in
    this page session — an already-earned badge just renders in its final state, no replay. */
 @keyframes badge-unlock {
-  0% { transform: scale(0.85); box-shadow: 0 0 0 0 rgba(221, 187, 174, 0.6); }
-  50% { transform: scale(1.12); box-shadow: 0 0 0 8px rgba(221, 187, 174, 0); }
-  100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(221, 187, 174, 0); }
+  0% { transform: scale(0.85); box-shadow: 0 0 0 0 rgba(214, 149, 115, 0.6); }
+  50% { transform: scale(1.12); box-shadow: 0 0 0 8px rgba(214, 149, 115, 0); }
+  100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(214, 149, 115, 0); }
 }
 
 .badge-icon {
@@ -1404,8 +1433,7 @@ select:focus-visible {
 
 #day-detail h3 {
   font-family: var(--font-display);
-  font-style: italic;
-  font-weight: 500;
+  font-weight: 400;
   font-size: 16px;
   margin: 0 0 10px;
 }

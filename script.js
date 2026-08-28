@@ -1378,13 +1378,21 @@ function renderWeekTrail() {
 // free-exercise-db (yuhonas/free-exercise-db on GitHub, Unlicense/public domain) is a static
 // JSON file plus JPEGs served straight from raw.githubusercontent.com with CORS wide open —
 // no API key, no backend, same "call it straight from the browser" pattern as TikTok's oEmbed
-// endpoint elsewhere in this file. It's a weightlifting-focused dataset (873 exercises), so it
-// has good coverage for standard strength moves but none at all for cardio or Pilates/Yoga —
-// those just fall through to the "no reference found" message below, honestly.
+// endpoint elsewhere in this file. It's a weightlifting-focused dataset (873 exercises) with
+// real photos, so it's tried first — but it has none at all for cardio or Pilates/Yoga, which
+// is why wger (below) exists as a second, broader-but-photo-less fallback source.
 const EXERCISE_REFERENCE_URL = "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/dist/exercises.json";
 const EXERCISE_REFERENCE_IMAGE_BASE = "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/";
 
+// wger.de (CC-BY-SA 4.0, community-maintained, no API key needed) is a general fitness
+// database rather than a pure weightlifting one — it has an actual Cardio category, so it
+// picks up moves free-exercise-db has zero coverage for. It still has no yoga or Pilates pose
+// names at all (checked directly against wger's own data), so that gap is handled by the
+// YouTube-search fallback in toggleExerciseReference below rather than a third data source.
+const WGER_TRANSLATION_URL = "https://wger.de/api/v2/exercise-translation/?format=json&language=2&limit=500";
+
 let exerciseReferenceDatabase = null; // lazy-loaded on first use, then kept for the rest of the session
+let wgerReferenceDatabase = null; // same, for the second-tier source
 
 async function loadExerciseReferenceDatabase() {
   if (exerciseReferenceDatabase) return exerciseReferenceDatabase;
@@ -1408,6 +1416,41 @@ async function loadExerciseReferenceDatabase() {
   return data;
 }
 
+// wger's own query-string filters (?name=, ?language=) don't reliably narrow results server
+// side, so this fetches every English-tagged translation (a few thousand, paginated via the
+// API's own "next" links) and matches client side — same shape as free-exercise-db above,
+// just assembled from a paginated API instead of one static file.
+async function loadWgerReferenceDatabase() {
+  if (wgerReferenceDatabase) return wgerReferenceDatabase;
+
+  const cached = localStorage.getItem("wgerReferenceCache");
+  if (cached) {
+    wgerReferenceDatabase = JSON.parse(cached);
+    return wgerReferenceDatabase;
+  }
+
+  let url = WGER_TRANSLATION_URL;
+  const entries = [];
+  while (url) {
+    const response = await fetch(url);
+    const page = await response.json();
+    page.results.forEach((entry) => {
+      if (entry.name && entry.description) {
+        entries.push({ name: entry.name, description: entry.description });
+      }
+    });
+    url = page.next;
+  }
+
+  wgerReferenceDatabase = entries;
+  try {
+    localStorage.setItem("wgerReferenceCache", JSON.stringify(entries));
+  } catch (error) {
+    // Same reasoning as the free-exercise-db cache above — skip on quota/private-mode errors.
+  }
+  return entries;
+}
+
 // Very basic singular/plural handling ("Squats" -> "squat") so the word-matching below isn't
 // tripped up by something as simple as pluralization.
 function normalizeReferenceWord(word) {
@@ -1428,8 +1471,9 @@ function getReferenceWords(name) {
 // Matches by whole words, not raw substring — a naive "does the string contain this text"
 // check matches "run" inside "cRUNches", which is exactly the kind of wrong match this avoids.
 // Among every candidate where one name's words are fully contained in the other's, the one
-// with the fewest extra words wins, as a simple stand-in for "the more generic match".
-function findExerciseReference(exerciseName, database) {
+// with the fewest extra words wins, as a simple stand-in for "the more generic match". Takes
+// a `getName` accessor so it works against both the free-exercise-db and wger shapes below.
+function findExerciseReference(exerciseName, database, getName) {
   const queryWords = getReferenceWords(exerciseName);
   if (queryWords.length === 0) return null;
 
@@ -1437,7 +1481,11 @@ function findExerciseReference(exerciseName, database) {
   let bestExtraWords = Infinity;
 
   database.forEach((entry) => {
-    const candidateWords = getReferenceWords(entry.name);
+    const candidateWords = getReferenceWords(getName(entry));
+    // A name that normalizes to zero words (non-Latin script, punctuation-only — wger's
+    // community data has a few) would otherwise vacuously pass the "every candidate word is
+    // in the query" check below for literally any query, since [].every() is always true.
+    if (candidateWords.length === 0) return;
     const allQueryWordsFound = queryWords.every((w) => candidateWords.includes(w));
     const allCandidateWordsFound = candidateWords.every((w) => queryWords.includes(w));
     if (allQueryWordsFound || allCandidateWordsFound) {
@@ -1450,6 +1498,20 @@ function findExerciseReference(exerciseName, database) {
   });
 
   return bestMatch;
+}
+
+// wger descriptions are raw HTML (<p>, <ol>, <li>...) rather than plain text. Stripped down to
+// text rather than injected as-is, since this is third-party content and innerHTML-ing markup
+// straight from an external API is exactly the kind of thing that shouldn't be trusted blindly.
+function stripHtmlTags(html) {
+  const withoutTags = html.replace(/<[^>]*>/g, " ");
+  const withoutEntities = withoutTags.replace(/&nbsp;/g, " ").replace(/&amp;/g, "&");
+  return withoutEntities.replace(/\s+/g, " ").trim();
+}
+
+function buildYouTubeSearchUrl(exerciseName) {
+  const query = encodeURIComponent(`${exerciseName} exercise how to`);
+  return `https://www.youtube.com/results?search_query=${query}`;
 }
 
 async function toggleExerciseReference(exerciseName, panel, button) {
@@ -1469,24 +1531,43 @@ async function toggleExerciseReference(exerciseName, panel, button) {
 
   try {
     const database = await loadExerciseReferenceDatabase();
-    const match = findExerciseReference(exerciseName, database);
+    const match = findExerciseReference(exerciseName, database, (entry) => entry.name);
 
-    if (!match) {
-      panel.innerHTML = `<p class="reference-empty">No visual reference found for "${exerciseName}".</p>`;
+    if (match) {
+      const imagesHtml = match.images
+        .map(
+          (path) =>
+            `<img src="${EXERCISE_REFERENCE_IMAGE_BASE}${path}" alt="${match.name}" class="reference-image" loading="lazy">`
+        )
+        .join("");
+      const firstStep = match.instructions[0] || "";
+
+      panel.innerHTML = `
+        <div class="reference-images">${imagesHtml}</div>
+        <p class="reference-caption">${match.name}${firstStep ? ` — ${firstStep}` : ""}</p>
+      `;
       return;
     }
 
-    const imagesHtml = match.images
-      .map(
-        (path) =>
-          `<img src="${EXERCISE_REFERENCE_IMAGE_BASE}${path}" alt="${match.name}" class="reference-image" loading="lazy">`
-      )
-      .join("");
-    const firstStep = match.instructions[0] || "";
+    // Nothing in the strength-focused dataset — try the broader, photo-less wger source
+    // (this is where cardio moves free-exercise-db has zero coverage for get picked up).
+    const wgerDatabase = await loadWgerReferenceDatabase();
+    const wgerMatch = findExerciseReference(exerciseName, wgerDatabase, (entry) => entry.name);
 
+    if (wgerMatch) {
+      const description = stripHtmlTags(wgerMatch.description);
+      panel.innerHTML = `
+        <p class="reference-caption">${wgerMatch.name}${description ? ` — ${description}` : ""}</p>
+        <p class="reference-source">via wger.de (CC BY-SA 4.0)</p>
+      `;
+      return;
+    }
+
+    // Neither database has it — true for every yoga pose, Pilates move, and Dance routine
+    // right now, since no free structured dataset covers those. A search link beats a dead end.
     panel.innerHTML = `
-      <div class="reference-images">${imagesHtml}</div>
-      <p class="reference-caption">${match.name}${firstStep ? ` — ${firstStep}` : ""}</p>
+      <p class="reference-empty">No visual reference found for "${exerciseName}".</p>
+      <a class="reference-search-link" href="${buildYouTubeSearchUrl(exerciseName)}" target="_blank" rel="noopener noreferrer">Search YouTube for "${exerciseName}"</a>
     `;
   } catch (error) {
     panel.innerHTML = `<p class="reference-empty">Couldn't load a reference right now.</p>`;
