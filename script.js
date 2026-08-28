@@ -1954,6 +1954,70 @@ function renderCountdown() {
   countdownEl.textContent = buildCountdownText(daysLeft);
 }
 
+// Same taper-phase idea as buildCountdownText above, but returning structured data (a phase
+// name + guidance sentence) instead of a single ticking-down string, so the Run Coach card can
+// show a clear heading and separate body text. Kept as its own pure function (daysUntilRace in,
+// object out) for the same testability reason.
+function getRunCoachPhase(daysUntilRace) {
+  if (daysUntilRace < 0) {
+    return {
+      phase: "Recovery",
+      guidance: "Race complete! Light movement only for the next few days.",
+    };
+  }
+  if (daysUntilRace === 0) {
+    return {
+      phase: "Race day",
+      guidance: "Trust your training — this is the easiest run of the block, because the work is already done.",
+    };
+  }
+  if (daysUntilRace <= 1) {
+    return {
+      phase: "Final stretch",
+      guidance: "A light 10–15 minute jog is fine, or full rest. Hydrate, relax, lay out your race kit.",
+    };
+  }
+  if (daysUntilRace <= 7) {
+    return {
+      phase: "Race week",
+      guidance: "Short, easy shakeout runs only. Drop strength training from today. Nothing new — same shoes, same breakfast you've trained with.",
+    };
+  }
+  if (daysUntilRace <= 14) {
+    return {
+      phase: "Taper begins",
+      guidance: "Cut your usual run distance by about 25–30%, but keep the pace similar — shorter, not slower. Strength sessions can stay light.",
+    };
+  }
+  if (daysUntilRace <= 21) {
+    return {
+      phase: "Peak week",
+      guidance: "This is your longest or hardest effort of the whole block — after this, everything eases off.",
+    };
+  }
+  return {
+    phase: "Build phase",
+    guidance: "Keep the current mix — easy runs, one longer run weekly, strength as normal.",
+  };
+}
+
+// Renders the Run Coach card on the home page. Only needs to run once on load — the phase
+// only changes day to day, so there's no need to keep it live like the countdown/timer.
+function renderRunCoach() {
+  const phaseEl = document.getElementById("run-coach-phase");
+  const guidanceEl = document.getElementById("run-coach-guidance");
+  if (!phaseEl || !guidanceEl) return;
+
+  const raceDate = new Date("2026-10-11"); // Melbourne Marathon day — matches renderCountdown
+  const today = new Date();
+  const msPerDay = 1000 * 60 * 60 * 24;
+  const daysUntilRace = Math.ceil((raceDate - today) / msPerDay);
+
+  const { phase, guidance } = getRunCoachPhase(daysUntilRace);
+  phaseEl.textContent = phase;
+  guidanceEl.textContent = guidance;
+}
+
 // Greets Steph by name, varying the wording by the time of day — a nice personal touch that's
 // cheap to compute since we already have the current time from `new Date()`.
 function renderGreeting() {
@@ -2366,6 +2430,7 @@ function updateTimerNavDot() {
 // ---------- INITIAL RENDER ----------
 
 renderCountdown();
+renderRunCoach();
 renderGreeting();
 initTimerPicker();
 renderTemplateList();
