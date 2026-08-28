@@ -1183,8 +1183,8 @@ select:focus-visible {
 
 .assign-row {
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  gap: 12px;
   padding: 8px 0;
   border-bottom: 1px solid var(--color-hairline);
 }
@@ -1197,9 +1197,19 @@ select:focus-visible {
   color: var(--color-ink);
   font-weight: 500;
   font-size: 14px;
+  /* A fixed-width day-name column ("Wednesday" is the longest) so every select below starts
+     at the same X position, instead of drifting per row to match each day name's own width. */
+  flex: 0 0 88px;
 }
 
 .assign-row select {
+  /* Fills the rest of the row equally on every row, rather than sizing itself to whatever
+     option text happens to be selected ("Yoga" vs "Rest day") — that's what let the select
+     boxes end up different widths in the first place. min-width: 0 is needed alongside
+     flex: 1 or a long option label can force the row wider than the card on a narrow phone,
+     the same flex-child sizing quirk fixed elsewhere in this file. */
+  flex: 1;
+  min-width: 0;
   font-family: var(--font-body);
   font-size: 14px;
   padding: 8px 10px;
