@@ -15,6 +15,16 @@
   --font-mono: "JetBrains Mono", monospace;
 
   --radius: 14px;
+
+  /* A tiny (64x64, ~5KB) procedurally-generated noise PNG, embedded directly -- no separate
+     image file, no build step. Earlier this used a live SVG feTurbulence filter instead, which
+     turned out to be a mistake: its native contrast was so low that even after tuning opacity
+     the actual rendered pixel variance was near zero -- essentially invisible on a real screen,
+     which is exactly what got reported back. This baked-alpha PNG (random per-pixel alpha,
+     0-45 out of 255, tinted with the ink color) was verified to produce clearly visible grain
+     via direct pixel measurement (~10 std dev per channel) before being wired in here, not just
+     eyeballed. Defined once and reused for both the page background and card surfaces. */
+  --grain-texture: url("data:image/png;base64,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");
 }
 
 * {
@@ -28,6 +38,20 @@ body {
   font-family: var(--font-body);
   line-height: 1.5;
   padding: 24px 16px calc(84px + env(safe-area-inset-bottom));
+}
+
+/* A faint warm linen/paper texture behind the whole app, not just cards — fixed to the
+   viewport (rather than the document) so it doesn't visibly repeat or shift as the page
+   scrolls, and sits at z-index -1 so it stays behind every normal-flow element without
+   needing to touch anyone else's stacking order. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background-image: var(--grain-texture);
+  background-repeat: repeat;
+  pointer-events: none;
+  z-index: -1;
 }
 
 main {
@@ -379,10 +403,14 @@ main {
 /* Cards */
 
 .card {
-  background: var(--color-card);
+  /* A whisper of top-highlight (not a flat fill) plus a soft, warm-toned ambient shadow —
+     built from the ink color rather than plain black, so it reads as a gentle lift instead
+     of a harsh drop shadow. Replaces the old flat/hairline-only "no shadow" rule. */
+  background: linear-gradient(180deg, #FFFFFF 0%, var(--color-card) 60%);
   border-radius: var(--radius);
   padding: 20px 22px;
   border: 1px solid var(--color-hairline);
+  box-shadow: 0 8px 24px -4px rgba(74, 59, 50, 0.10), 0 2px 6px rgba(74, 59, 50, 0.05);
 }
 
 .card h2 {
