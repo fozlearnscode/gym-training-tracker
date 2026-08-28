@@ -414,12 +414,50 @@ function animateCountUp(element, endValue) {
   requestAnimationFrame(step);
 }
 
+// Steps come from Apple HealthKit, which has no public web API at all — a browser can never
+// read it directly. Instead an iOS Shortcuts automation on Steph's phone POSTs today's count
+// to api/log-steps.js (see that file's header comment), and this fetches the resulting log
+// back down. Fetched once per page load and cached here rather than re-fetched on every
+// renderStats() call, since the underlying data only changes once a day at most.
+const STEPS_API_URL = "https://gym-training-tracker-gamma.vercel.app/api/log-steps";
+let stepsLog = null; // date -> step count, or null until the first fetch resolves
+
+async function fetchStepsLog() {
+  if (!document.getElementById("stats-grid")) return; // only the home page shows this stat
+
+  try {
+    const response = await fetch(STEPS_API_URL);
+    const data = await response.json();
+    stepsLog = data.steps || {};
+  } catch (error) {
+    // No steps data is a perfectly normal state (the automation may not be set up, or the
+    // network request failed) — just leave the stat off the grid rather than show an error.
+    stepsLog = null;
+  }
+  renderStats(); // re-render now that the number (or its absence) is known
+}
+
+// Same 30-day window as calculateLast30DayStats, just summed from the fetched steps log
+// instead of trainingLog, since steps live server-side rather than in localStorage.
+function calculateStepsLast30Days() {
+  if (!stepsLog) return null;
+
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - 29);
+  const cutoffString = toDateString(cutoff);
+
+  return Object.entries(stepsLog)
+    .filter(([date]) => date >= cutoffString)
+    .reduce((sum, [, count]) => sum + count, 0);
+}
+
 function renderStats() {
   const container = document.getElementById("stats-grid");
   if (!container) return; // this page doesn't show stats
 
   const streak = calculateStreak();
   const { totalSets, totalDistance, sessionsCompleted } = calculateLast30DayStats();
+  const totalSteps = calculateStepsLast30Days();
 
   container.innerHTML = `
     ${buildStreakStatHtml(streak)}
@@ -435,6 +473,12 @@ function renderStats() {
       <span class="stat-number" data-target="${totalDistance}">0</span>
       <span class="stat-label">km run (30d)</span>
     </div>
+    ${totalSteps == null ? "" : `
+      <div class="stat-block">
+        <span class="stat-number" data-target="${totalSteps}">0</span>
+        <span class="stat-label">steps (30d)</span>
+      </div>
+    `}
   `;
 
   container.querySelectorAll(".stat-number[data-target]").forEach((el) => {
@@ -2635,6 +2679,7 @@ renderTemplateList();
 renderAssignGrid();
 renderWeekTrail();
 renderStats();
+fetchStepsLog(); // re-renders Stats a second time once (or if) the steps count arrives
 renderTodayPlan();
 renderCalendar();
 renderDayDetail();
