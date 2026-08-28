@@ -464,6 +464,13 @@ main {
   border-color: var(--color-blush);
 }
 
+/* Dance exercises use blush instead of mocha even while unchecked, so a dance session reads
+   as visually distinct in the list at a glance (the checked state was already blush for
+   every type, per the checked-fill rule above). */
+.exercise-checkbox.is-dance {
+  border-color: var(--color-blush);
+}
+
 /* Only added by script.js for the split-second right after the user actually checks a box —
    never present on an already-completed exercise re-rendered from saved data — so this plays
    once as real feedback for the action, not every time the list happens to redraw. */
@@ -617,6 +624,33 @@ main {
   border: 1px solid var(--color-hairline);
   background: var(--color-bg);
   color: var(--color-ink);
+}
+
+/* Same compact sizing as .weight-input-small, for the dance effort dropdown inline in
+   Today's Plan (a <select> instead of a number input, since effort isn't a count). */
+.effort-select-small {
+  width: 84px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  padding: 6px 6px;
+  border-radius: 6px;
+  border: 1px solid var(--color-hairline);
+  background: var(--color-bg);
+  color: var(--color-ink);
+}
+
+/* Small reference-video link shown next to a dance exercise's name — separate from the
+   "How do I do this?" lookup, since it points at the template's own saved link. */
+.watch-link {
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--color-mocha);
+  text-decoration: none;
+}
+
+.watch-link:hover {
+  text-decoration: underline;
 }
 
 .exercise-inputs {
@@ -1098,6 +1132,21 @@ select:focus-visible {
   color: var(--color-card);
 }
 
+/* Dance's selected state uses blush instead of mocha, same reasoning as .exercise-checkbox
+   above — a dance selection should read as distinct, not just "another mocha toggle". Blush
+   is light, so this pairs it with ink text rather than the pale card-color text used on the
+   darker mocha fill (same pairing .pb-badge already uses on a blush background). */
+.type-toggle-btn[data-type="dance"]:hover {
+  border-color: var(--color-blush);
+  color: var(--color-blush);
+}
+
+.type-toggle-btn[data-type="dance"].is-active {
+  background: var(--color-blush);
+  border-color: var(--color-blush);
+  color: var(--color-ink);
+}
+
 .type-icon {
   width: 18px;
   height: 18px;
@@ -1145,9 +1194,16 @@ select:focus-visible {
 .row-reps,
 .row-distance,
 .row-duration,
+.row-dance-duration,
+.row-songs,
 .row-weight {
   flex: 1;
   width: 0; /* let flex control width instead of the input's default size */
+}
+
+.row-link {
+  flex: 2;
+  width: 0;
 }
 
 .remove-row-btn {

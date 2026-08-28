@@ -72,6 +72,32 @@ function saveTemplates() {
   localStorage.setItem("templates", JSON.stringify(templates));
 }
 
+// Adds the "Dance cardio" template once, on every load, for anyone who already has saved
+// templates (not just brand-new devices, which get it for free via seedTemplates above).
+// Checked by name each time rather than a one-off migration flag, so it's safe to run on
+// every page load without touching any existing templates or logged data.
+function ensureDanceCardioTemplate() {
+  const hasDanceTemplate = templates.some((t) => t.name === "Dance cardio");
+  if (hasDanceTemplate) return;
+
+  templates.push({
+    id: generateId(),
+    name: "Dance cardio",
+    exercises: [
+      {
+        name: "15 Min Dance Party",
+        type: "dance",
+        duration: 15,
+        songs: 4,
+        link: "https://youtu.be/1vRto-2MMZo" // MadFit's 15 Min Dance Party Workout
+      }
+    ]
+  });
+  saveTemplates();
+}
+
+ensureDanceCardioTemplate();
+
 // Assignments: a lookup table from day name -> template id ("Wednesday uses Leg day").
 // This is seeded to match the templates above, but only on first run.
 let weeklyAssignments = JSON.parse(localStorage.getItem("weeklyAssignments")) || {
@@ -790,6 +816,8 @@ if (document.getElementById("timer-start")) {
 const STRENGTH_ICON_SVG = '<path fill="currentColor" d="M12 5C10.89 5 10 5.89 10 7S10.89 9 12 9 14 8.11 14 7 13.11 5 12 5M22 1V6H20V4H4V6H2V1H4V3H20V1H22M15 11.26V23H13V18H11V23H9V11.26C6.93 10.17 5.5 8 5.5 5.5L5.5 5H7.5L7.5 5.5C7.5 8 9.5 10 12 10S16.5 8 16.5 5.5L16.5 5H18.5L18.5 5.5C18.5 8 17.07 10.17 15 11.26Z"/>';
 // "run", Material Design Icons (Pictogrammers), Apache-2.0: https://pictogrammers.com/library/mdi/icon/run/
 const CARDIO_ICON_SVG = '<path fill="currentColor" d="M13.5,5.5C14.59,5.5 15.5,4.58 15.5,3.5C15.5,2.38 14.59,1.5 13.5,1.5C12.39,1.5 11.5,2.38 11.5,3.5C11.5,4.58 12.39,5.5 13.5,5.5M9.89,19.38L10.89,15L13,17V23H15V15.5L12.89,13.5L13.5,10.5C14.79,12 16.79,13 19,13V11C17.09,11 15.5,10 14.69,8.58L13.69,7C13.29,6.38 12.69,6 12,6C11.69,6 11.5,6.08 11.19,6.08L6,8.28V13H8V9.58L9.79,8.88L8.19,17L3.29,16L2.89,18L9.89,19.38Z"/>';
+// "human-female-dance", Material Design Icons (Pictogrammers), Apache-2.0: https://pictogrammers.com/library/mdi/icon/human-female-dance/
+const DANCE_ICON_SVG = '<path fill="currentColor" d="M17 17H15V23H13V17H10.88L9.34 18.93L11.71 21.29L10.29 22.71L7.93 20.34C7.58 20 7.38 19.53 7.35 19.04C7.32 18.55 7.47 18.06 7.78 17.68L8.32 17H7L9 13V10C8.38 10.47 7.88 11.07 7.53 11.76C7.18 12.46 7 13.22 7 14H5C5 12.14 5.74 10.36 7.05 9.05C8.36 7.74 10.14 7 12 7C13.33 7 14.6 6.47 15.54 5.54C16.47 4.6 17 3.33 17 2H19C19 3.32 18.62 4.62 17.91 5.73C17.2 6.85 16.2 7.74 15 8.31V13L17 17M14 4C14 4.4 13.88 4.78 13.66 5.11C13.44 5.44 13.13 5.7 12.77 5.85C12.4 6 12 6.04 11.61 5.96C11.22 5.88 10.87 5.69 10.59 5.41C10.31 5.13 10.12 4.78 10.04 4.39C9.96 4 10 3.6 10.15 3.24C10.3 2.87 10.56 2.56 10.89 2.34C11.22 2.12 11.6 2 12 2C12.53 2 13.04 2.21 13.41 2.59C13.79 2.96 14 3.47 14 4Z"/>';
 
 // ---------- WEEK TRAIL DAY-CARD ICONS ----------
 
@@ -823,6 +851,7 @@ function getDayIconMarkup(sessionName) {
   if (name.includes("upper") || name.includes("arm")) return `<svg class="day-card-icon" viewBox="0 0 24 24">${ARM_ICON_SVG}</svg>`;
   if (name.includes("yoga")) return `<svg class="day-card-icon" viewBox="0 0 24 24">${YOGA_ICON_SVG}</svg>`;
   if (name.includes("pilates")) return PILATES_ICON_MARKUP;
+  if (name.includes("dance")) return `<svg class="day-card-icon" viewBox="0 0 24 24">${DANCE_ICON_SVG}</svg>`;
   return `<svg class="day-card-icon" viewBox="0 0 24 24">${STRENGTH_ICON_SVG}</svg>`;
 }
 
@@ -883,6 +912,9 @@ function renderTemplateList() {
 function addExerciseRow(prefill) {
   const rowsContainer = document.getElementById("template-exercise-rows");
   const isCardio = prefill && prefill.type === "cardio";
+  const isDance = prefill && prefill.type === "dance";
+  const isStrength = !isCardio && !isDance;
+  const rowType = isDance ? "dance" : isCardio ? "cardio" : "strength";
   const isLinked = Boolean(prefill && prefill.linkedToNext);
 
   const row = document.createElement("div");
@@ -890,23 +922,31 @@ function addExerciseRow(prefill) {
   row.innerHTML = `
     <div class="exercise-row">
       <input type="text" class="row-name" placeholder="Exercise" value="${prefill ? prefill.name : ""}" required>
-      <div class="type-toggle row-type" data-value="${isCardio ? "cardio" : "strength"}">
-        <button type="button" class="type-toggle-btn ${!isCardio ? "is-active" : ""}" data-type="strength" aria-pressed="${!isCardio}" aria-label="Strength">
+      <div class="type-toggle row-type" data-value="${rowType}">
+        <button type="button" class="type-toggle-btn ${isStrength ? "is-active" : ""}" data-type="strength" aria-pressed="${isStrength}" aria-label="Strength">
           <svg class="type-icon" viewBox="0 0 24 24">${STRENGTH_ICON_SVG}</svg>
         </button>
         <button type="button" class="type-toggle-btn ${isCardio ? "is-active" : ""}" data-type="cardio" aria-pressed="${isCardio}" aria-label="Cardio">
           <svg class="type-icon" viewBox="0 0 24 24">${CARDIO_ICON_SVG}</svg>
         </button>
+        <button type="button" class="type-toggle-btn ${isDance ? "is-active" : ""}" data-type="dance" aria-pressed="${isDance}" aria-label="Dance">
+          <svg class="type-icon" viewBox="0 0 24 24">${DANCE_ICON_SVG}</svg>
+        </button>
       </div>
       <button type="button" class="remove-row-btn" aria-label="Remove exercise">&times;</button>
     </div>
-    <div class="exercise-row-fields strength-fields" ${isCardio ? "hidden" : ""}>
-      <input type="number" class="row-sets" placeholder="Sets" min="1" value="${!isCardio && prefill ? prefill.sets : ""}">
-      <input type="number" class="row-reps" placeholder="Reps" min="1" value="${!isCardio && prefill ? prefill.reps : ""}">
+    <div class="exercise-row-fields strength-fields" ${isStrength ? "" : "hidden"}>
+      <input type="number" class="row-sets" placeholder="Sets" min="1" value="${isStrength && prefill ? prefill.sets : ""}">
+      <input type="number" class="row-reps" placeholder="Reps" min="1" value="${isStrength && prefill ? prefill.reps : ""}">
     </div>
     <div class="exercise-row-fields cardio-fields" ${isCardio ? "" : "hidden"}>
       <input type="number" class="row-distance" placeholder="Distance (km)" min="0" step="0.1" value="${isCardio ? prefill.distance : ""}">
       <input type="number" class="row-duration" placeholder="Duration (min)" min="0" value="${isCardio ? prefill.duration : ""}">
+    </div>
+    <div class="exercise-row-fields dance-fields" ${isDance ? "" : "hidden"}>
+      <input type="number" class="row-dance-duration" placeholder="Duration (min)" min="0" value="${isDance ? prefill.duration : ""}">
+      <input type="number" class="row-songs" placeholder="Songs" min="0" value="${isDance ? prefill.songs : ""}">
+      <input type="url" class="row-link" placeholder="Reference video link (optional)" value="${isDance && prefill.link ? prefill.link : ""}">
     </div>
     <label class="superset-toggle">
       <input type="checkbox" class="row-superset-checkbox" ${isLinked ? "checked" : ""}>
@@ -917,11 +957,13 @@ function addExerciseRow(prefill) {
   const typeToggle = row.querySelector(".row-type");
   const strengthFields = row.querySelector(".strength-fields");
   const cardioFields = row.querySelector(".cardio-fields");
+  const danceFields = row.querySelector(".dance-fields");
 
   setupTypeToggle(typeToggle, () => {
-    const showCardio = typeToggle.dataset.value === "cardio";
-    strengthFields.hidden = showCardio;
-    cardioFields.hidden = !showCardio;
+    const value = typeToggle.dataset.value;
+    strengthFields.hidden = value !== "strength";
+    cardioFields.hidden = value !== "cardio";
+    danceFields.hidden = value !== "dance";
   });
 
   row.querySelector(".remove-row-btn").addEventListener("click", () => row.remove());
@@ -992,6 +1034,18 @@ if (document.getElementById("new-template-btn")) {
           type,
           distance: Number(row.querySelector(".row-distance").value) || 0,
           duration: Number(row.querySelector(".row-duration").value) || 0,
+          linkedToNext
+        };
+      }
+
+      if (type === "dance") {
+        const link = row.querySelector(".row-link").value.trim();
+        return {
+          name,
+          type,
+          duration: Number(row.querySelector(".row-dance-duration").value) || 0,
+          songs: Number(row.querySelector(".row-songs").value) || 0,
+          link: link || null,
           linkedToNext
         };
       }
@@ -1469,6 +1523,7 @@ function buildTodayPlanItem(exercise, todayString, isBodyweightSession) {
     (entry) => entry.date === todayString && entry.exercise === exercise.name
   );
   const isCardio = exercise.type === "cardio";
+  const isDance = exercise.type === "dance";
 
   const item = document.createElement("li");
   item.className = "exercise-item";
@@ -1476,15 +1531,26 @@ function buildTodayPlanItem(exercise, todayString, isBodyweightSession) {
   const checkbox = document.createElement("input");
   checkbox.type = "checkbox";
   checkbox.className = "exercise-checkbox";
+  if (isDance) checkbox.classList.add("is-dance"); // blush instead of mocha — see style.css
   checkbox.checked = Boolean(existingEntry);
 
   const info = document.createElement("div");
   info.className = "exercise-info";
-  const targetMetaText = isCardio ? `${exercise.distance}km target` : `${exercise.sets} x ${exercise.reps}`;
+  const targetMetaText = isCardio
+    ? `${exercise.distance}km target`
+    : isDance
+    ? `${exercise.duration}min · ${exercise.songs} songs target`
+    : `${exercise.sets} x ${exercise.reps}`;
+  // A template-defined reference video (dance exercises only) gets its own small link next
+  // to the name, separate from the "How do I do this?" reference lookup below.
+  const watchLinkHtml = isDance && exercise.link
+    ? `<a class="watch-link" href="${exercise.link}" target="_blank" rel="noopener noreferrer">Watch</a>`
+    : "";
   info.innerHTML = `
     <div class="exercise-name-row">
       <span class="exercise-name">${exercise.name}</span>
       <button type="button" class="reference-btn" aria-label="How do I do this?">?</button>
+      ${watchLinkHtml}
     </div>
     <span class="exercise-meta">${targetMetaText}</span>
     <div class="reference-panel" hidden></div>
@@ -1499,8 +1565,8 @@ function buildTodayPlanItem(exercise, todayString, isBodyweightSession) {
   const inputsWrapper = document.createElement("div");
   inputsWrapper.className = "exercise-inputs";
 
-  // Build the right pair (or single) input for this exercise's type.
-  let firstInput, secondInput;
+  // Build the right set of inputs for this exercise's type.
+  let firstInput, secondInput, thirdInput;
   if (isCardio) {
     firstInput = document.createElement("input");
     firstInput.type = "number";
@@ -1529,6 +1595,34 @@ function buildTodayPlanItem(exercise, todayString, isBodyweightSession) {
 
     inputsWrapper.appendChild(firstInput);
     inputsWrapper.appendChild(secondInput);
+  } else if (isDance) {
+    firstInput = document.createElement("input");
+    firstInput.type = "number";
+    firstInput.className = "weight-input-small";
+    firstInput.placeholder = "min";
+    firstInput.min = "0";
+    firstInput.value = existingEntry ? existingEntry.duration ?? "" : "";
+
+    secondInput = document.createElement("input");
+    secondInput.type = "number";
+    secondInput.className = "weight-input-small";
+    secondInput.placeholder = "songs";
+    secondInput.min = "0";
+    secondInput.value = existingEntry ? existingEntry.songs ?? "" : "";
+
+    thirdInput = document.createElement("select");
+    thirdInput.className = "effort-select-small";
+    ["Low", "Medium", "High"].forEach((level) => {
+      const option = document.createElement("option");
+      option.value = level;
+      option.textContent = level;
+      thirdInput.appendChild(option);
+    });
+    thirdInput.value = existingEntry && existingEntry.effort ? existingEntry.effort : "Medium";
+
+    inputsWrapper.appendChild(firstInput);
+    inputsWrapper.appendChild(secondInput);
+    inputsWrapper.appendChild(thirdInput);
   } else if (!isBodyweightSession) {
     firstInput = document.createElement("input");
     firstInput.type = "number";
@@ -1549,6 +1643,16 @@ function buildTodayPlanItem(exercise, todayString, isBodyweightSession) {
         type: "cardio",
         distance: firstInput.value ? Number(firstInput.value) : exercise.distance,
         duration: secondInput.value ? Number(secondInput.value) : exercise.duration
+      };
+    }
+    if (isDance) {
+      return {
+        date: todayString,
+        exercise: exercise.name,
+        type: "dance",
+        duration: firstInput.value ? Number(firstInput.value) : exercise.duration,
+        songs: secondInput.value ? Number(secondInput.value) : exercise.songs,
+        effort: thirdInput.value
       };
     }
     return {
@@ -1607,6 +1711,10 @@ function buildTodayPlanItem(exercise, todayString, isBodyweightSession) {
     if (isCardio) {
       entry.distance = firstInput.value ? Number(firstInput.value) : null;
       entry.duration = secondInput.value ? Number(secondInput.value) : null;
+    } else if (isDance) {
+      entry.duration = firstInput.value ? Number(firstInput.value) : null;
+      entry.songs = secondInput.value ? Number(secondInput.value) : null;
+      entry.effort = thirdInput.value;
     } else {
       entry.weight = firstInput.value ? Number(firstInput.value) : null;
     }
@@ -1617,6 +1725,7 @@ function buildTodayPlanItem(exercise, todayString, isBodyweightSession) {
 
   if (firstInput) firstInput.addEventListener("change", handleInputChange);
   if (secondInput) secondInput.addEventListener("change", handleInputChange);
+  if (thirdInput) thirdInput.addEventListener("change", handleInputChange);
 
   item.appendChild(checkbox);
   item.appendChild(info);
@@ -1779,6 +1888,9 @@ function renderDayDetail() {
         const pace = formatPace(entry.distance, entry.duration);
         const paceText = pace ? ` · ${pace}` : "";
         return `<li><span>${entry.exercise}</span><span class="stat">${entry.distance}km · ${entry.duration}min${paceText}</span></li>`;
+      }
+      if (entry.type === "dance") {
+        return `<li><span>${entry.exercise}</span><span class="stat">${entry.duration} min · ${entry.songs} songs · ${entry.effort} effort</span></li>`;
       }
       const weightText = entry.weight ? `@ ${entry.weight}kg` : "";
       return `<li><span>${entry.exercise}</span><span class="stat">${entry.sets}x${entry.reps} ${weightText}</span></li>`;
@@ -2040,10 +2152,11 @@ function renderGreeting() {
 // ---------- MANUAL LOG FORM (for anything outside the plan) ----------
 
 function toggleLogFormFields() {
-  const showCardio = document.getElementById("log-type").dataset.value === "cardio";
-  document.getElementById("strength-fields").hidden = showCardio;
-  document.getElementById("cardio-fields").hidden = !showCardio;
-  if (!showCardio) document.getElementById("log-pace-preview").hidden = true;
+  const type = document.getElementById("log-type").dataset.value;
+  document.getElementById("strength-fields").hidden = type !== "strength";
+  document.getElementById("cardio-fields").hidden = type !== "cardio";
+  document.getElementById("dance-fields").hidden = type !== "dance";
+  if (type !== "cardio") document.getElementById("log-pace-preview").hidden = true;
 }
 
 // Pace isn't logged separately — see formatPace — so this just previews it live as distance
@@ -2073,6 +2186,10 @@ if (document.getElementById("log-form")) {
     if (type === "cardio") {
       entry.distance = Number(document.getElementById("distance").value) || 0;
       entry.duration = Number(document.getElementById("duration").value) || 0;
+    } else if (type === "dance") {
+      entry.duration = Number(document.getElementById("dance-duration").value) || 0;
+      entry.songs = Number(document.getElementById("songs").value) || 0;
+      entry.effort = document.getElementById("effort").value;
     } else {
       entry.sets = Number(document.getElementById("sets").value) || 0;
       entry.reps = Number(document.getElementById("reps").value) || 0;
