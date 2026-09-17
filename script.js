@@ -2436,44 +2436,44 @@ function renderSavedVideos() {
 }
 
 if (document.getElementById("add-video-form")) {
-  // If the page was opened as videos.html?url=..., pre-fill the input with that link. This is
-  // meant for a phone's share sheet (or a bookmarklet) handing off a TikTok link directly,
-  // rather than the user having to copy/paste it in by hand.
-  const sharedUrl = new URLSearchParams(window.location.search).get("url");
-  if (sharedUrl) {
-    document.getElementById("video-url").value = sharedUrl;
+  const urlInput = document.getElementById("video-url");
+  const errorEl = document.getElementById("video-error");
+  const successEl = document.getElementById("video-success");
+  const submitBtn = document.getElementById("add-video-btn");
+
+  // Does the actual save, shared by both the manual form submit below and the share-sheet
+  // auto-save further down — pulled out so the two call sites can't drift apart.
+  async function saveTikTokVideo(videoUrl) {
+    const data = await fetchTikTokOEmbed(videoUrl);
+
+    // We deliberately store only the small pieces of data we need to render our own card
+    // and rebuild the embed later — not the raw HTML TikTok returns. That HTML embeds a
+    // thumbnail URL that expires after a while, so storing it would mean saved videos start
+    // showing broken images over time. Rebuilding the blockquote fresh from videoId every
+    // time avoids that problem entirely.
+    savedVideos.push({
+      id: generateId(),
+      videoId: data.embed_product_id,
+      url: videoUrl,
+      title: data.title,
+      authorName: data.author_name,
+      savedAt: toDateString(new Date())
+    });
+
+    saveSavedVideos();
+    renderSavedVideos();
   }
 
   document.getElementById("add-video-form").addEventListener("submit", async (event) => {
     event.preventDefault();
 
-    const urlInput = document.getElementById("video-url");
-    const errorEl = document.getElementById("video-error");
-    const submitBtn = document.getElementById("add-video-btn");
-
     errorEl.hidden = true;
+    successEl.hidden = true;
     submitBtn.disabled = true;
     submitBtn.textContent = "Saving...";
 
     try {
-      const data = await fetchTikTokOEmbed(urlInput.value.trim());
-
-      // We deliberately store only the small pieces of data we need to render our own card
-      // and rebuild the embed later — not the raw HTML TikTok returns. That HTML embeds a
-      // thumbnail URL that expires after a while, so storing it would mean saved videos start
-      // showing broken images over time. Rebuilding the blockquote fresh from videoId every
-      // time avoids that problem entirely.
-      savedVideos.push({
-        id: generateId(),
-        videoId: data.embed_product_id,
-        url: urlInput.value.trim(),
-        title: data.title,
-        authorName: data.author_name,
-        savedAt: toDateString(new Date())
-      });
-
-      saveSavedVideos();
-      renderSavedVideos();
+      await saveTikTokVideo(urlInput.value.trim());
       event.target.reset();
     } catch (error) {
       errorEl.textContent = "Couldn't save that video — check the link and try again.";
@@ -2483,6 +2483,36 @@ if (document.getElementById("add-video-form")) {
       submitBtn.textContent = "Save video";
     }
   });
+
+  // If the page was opened as videos.html?url=..., save that link immediately with no tap
+  // needed — meant for an iOS share-sheet Shortcut handing off a TikTok link directly. Safari
+  // still has to open briefly (the shortcut can't write into this page's localStorage any
+  // other way), but the save itself happens automatically the moment the page loads.
+  const sharedUrl = new URLSearchParams(window.location.search).get("url");
+  if (sharedUrl) {
+    // Strip the ?url= param right away so refreshing (or Safari restoring the tab later)
+    // can't accidentally save the same video twice.
+    window.history.replaceState({}, "", window.location.pathname);
+
+    submitBtn.disabled = true;
+    submitBtn.textContent = "Saving...";
+
+    saveTikTokVideo(sharedUrl)
+      .then(() => {
+        successEl.textContent = "Saved from the share sheet.";
+        successEl.hidden = false;
+      })
+      .catch(() => {
+        // Leave the link in the box so Steph can see what failed and retry by hand.
+        urlInput.value = sharedUrl;
+        errorEl.textContent = "Couldn't save that video — check the link and try again.";
+        errorEl.hidden = false;
+      })
+      .finally(() => {
+        submitBtn.disabled = false;
+        submitBtn.textContent = "Save video";
+      });
+  }
 }
 
 // ---------- SCREENSHOT IMPORT (Phase 3.5) ----------
